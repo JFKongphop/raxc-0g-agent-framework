@@ -27,7 +27,7 @@ use ethers::{
   prelude::*,
   providers::{Http, Provider},
 };
-use raxc::{analyze, build_markdown, build_qdrant, load_env, match_functions, parse_report_fields};
+use raxc::{analyze, build_markdown, build_og_compute, build_og_storage, load_env, match_functions, parse_report_fields, OgComputeClient, OgStorageClient};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -47,8 +47,8 @@ abigen!(
 
 struct AppState {
   http: Client,
-  qdrant: qdrant_client::Qdrant,
-  api_key: String,
+  storage: OgStorageClient,
+  compute: OgComputeClient,
   provider: Arc<Provider<Http>>,
   vault_contract: RaxcVault<Provider<Http>>,
   operator_wallet: LocalWallet,
@@ -211,10 +211,10 @@ async fn handle_analyze(
 
   // 4. Run analysis (now that payment is verified and marked)
   let (report, results) =
-    analyze(&state.http, &state.qdrant, &state.api_key, &req.contract).await?;
+    analyze(&state.http, &state.storage, &state.compute, &req.contract).await?;
 
   let func_matches =
-    match_functions(&state.http, &state.qdrant, &state.api_key, &req.contract, 3).await?;
+    match_functions(&state.http, &state.storage, &req.contract, 3).await?;
 
   let (filename, content) = build_markdown(&report, &results, &req.name, Some(&func_matches));
 
@@ -275,7 +275,6 @@ async fn health() -> impl IntoResponse {
 async fn main() -> anyhow::Result<()> {
   load_env();
 
-  let api_key = std::env::var("OPENAI_API_KEY").context("OPENAI_API_KEY not set")?;
   let rpc_url = std::env::var("RPC_URL").context("RPC_URL not set (e.g., Initia RPC endpoint)")?;
   let vault_address =
     std::env::var("VAULT_ADDRESS").context("VAULT_ADDRESS not set (deployed contract)")?;
@@ -283,7 +282,8 @@ async fn main() -> anyhow::Result<()> {
     std::env::var("OPERATOR_PRIVATE_KEY").context("OPERATOR_PRIVATE_KEY not set")?;
 
   let http = Client::new();
-  let qdrant = build_qdrant()?;
+  let storage = build_og_storage()?;
+  let compute = build_og_compute()?;
 
   // Initialize blockchain provider
   let provider = Arc::new(
@@ -310,8 +310,8 @@ async fn main() -> anyhow::Result<()> {
 
   let state = Arc::new(AppState {
     http,
-    qdrant,
-    api_key,
+    storage,
+    compute,
     provider: provider.clone(),
     vault_contract,
     operator_wallet,
