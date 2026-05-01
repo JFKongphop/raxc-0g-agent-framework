@@ -5,7 +5,8 @@
  * Run: npm run index:cases
  */
 
-import { readFile } from 'fs/promises';
+import { readFile, writeFile, readdir } from 'fs/promises';
+import { existsSync } from 'fs';
 import { glob } from 'glob';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
@@ -17,6 +18,7 @@ dotenv.config({ path: '../.env' });
 
 // 0G Storage KV Configuration
 const STREAM_ID = 'defi_cases';
+const MANIFEST_PATH = '../manifest.json';
 const BLOCKCHAIN_RPC = process.env.BLOCKCHAIN_RPC || 'https://evmrpc-testnet.0g.ai';
 const INDEXER_RPC = process.env.INDEXER_RPC || 'https://indexer-storage-testnet-turbo.0g.ai';
 const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
@@ -133,11 +135,26 @@ async function initializeClients() {
   console.log(`[*] Signer address: ${signer.address}`);
 }
 
+// ---------------------------------------------------------------------------
+// Manifest: saves { stream -> { key -> rootHash } } for RAG reads
+// ---------------------------------------------------------------------------
+
+async function saveToManifest(stream: string, key: string, rootHash: string): Promise<void> {
+  let manifest: Record<string, Record<string, string>> = {};
+  if (existsSync(MANIFEST_PATH)) {
+    const raw = await readFile(MANIFEST_PATH, 'utf-8');
+    manifest = JSON.parse(raw);
+  }
+  if (!manifest[stream]) manifest[stream] = {};
+  manifest[stream][key] = rootHash;
+  await writeFile(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
+}
+
 async function writeToOgKv(
   key: string,
   value: StorageValue,
   maxRetries = 3
-): Promise<boolean> {
+): Promise<string | null> {
   // Simplify the value
   const simplifiedValue = {
     embedding: value.embedding,
@@ -179,13 +196,28 @@ async function writeToOgKv(
       // Set key-value pair
       batcher.streamDataBuilder.set(streamIdBytes as any, keyBytes, valueBytes);
       
-      // Execute batch write
-      const [tx, execErr] = await batcher.exec(signer as any);
-      if (execErr !== null) {
-        throw new Error(`Batcher exec failed: ${execErr}`);
+      // The SDK always prints "Data prepared to upload root=0x..." before exec().
+      // Intercept console.log to capture the root hash since it's not on the tx object.
+      let capturedRootHash = '';
+      const _origLog = console.log;
+      console.log = (...args: any[]) => {
+        if (!capturedRootHash) {
+          const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+          const m = msg.match(/root=(0x[a-fA-F0-9]{64})/);
+          if (m) capturedRootHash = m[1];
+        }
+        _origLog.apply(console, args);
+      };
+
+      let execResult: string | null = null;
+      try {
+        const [, execErr] = await batcher.exec(signer as any);
+        if (execErr !== null) throw new Error(`Batcher exec failed: ${execErr}`);
+        execResult = capturedRootHash || null;
+      } finally {
+        console.log = _origLog;
       }
-      
-      return true;
+      return execResult;
     } catch (error: any) {
       const errorMsg = error.message || String(error);
       
@@ -202,11 +234,11 @@ async function writeToOgKv(
       }
       
       console.log(`  [!] SDK error: ${errorMsg.slice(0, 200)}`);
-      return false;
+      return null;
     }
   }
   
-  return false;
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -247,8 +279,11 @@ async function indexVulnLabs() {
       };
       
       // Write to 0G Storage KV
-      if (await writeToOgKv(exploitId, storageValue)) {
-        console.log(`✓ [${metadata.vuln_type}]`);
+      const result = await writeToOgKv(exploitId, storageValue);
+      if (result) {
+        console.log(`✓ [${metadata.vuln_type}] root=${result}`);
+        // Save to manifest
+        await saveToManifest(STREAM_ID, exploitId, result);
         indexed++;
       } else {
         console.log(`✗ FAILED`);
