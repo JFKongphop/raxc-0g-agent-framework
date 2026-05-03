@@ -1,5 +1,9 @@
 # RAXC — AI-Powered DeFi Smart Contract Vulnerability Scanner
 
+[![Crates.io](https://img.shields.io/crates/v/raxc.svg)](https://crates.io/crates/raxc)
+[![Documentation](https://docs.rs/raxc/badge.svg)](https://docs.rs/raxc)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 > **R**etrieval **A**ugmented e**X**ploit **C**hecker  
 > Grant Application One-Pager | May 2026
 
@@ -23,6 +27,21 @@
 *Detect vulnerabilities before exploitation*
 
 Powered by **0G Storage** + **0G Compute** + **777 Real Exploits** from DeFiHackLabs
+
+🌐 **Live Demo:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
+🔌 **API:** [https://raxc-0g-agent-framework.fly.dev](https://raxc-0g-agent-framework.fly.dev)  
+📦 **Crate:** [crates.io/crates/raxc](https://crates.io/crates/raxc)
+
+### Quick Install
+
+```bash
+# Add to your Rust project
+cargo add raxc
+
+# Or use in your Cargo.toml
+[dependencies]
+raxc = "0.1.0"
+```
 
 ---
 
@@ -200,114 +219,104 @@ Unlike traditional tools that rely on static rules or generic LLMs that hallucin
 
 ---
 
-## 🚀 Quick Start
+## 🌐 Live Demo
+
+**Try RAXC now without any setup!**
+
+🌐 **Web Interface:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
+🔌 **API Endpoint:** `https://raxc-0g-agent-framework.fly.dev`
+
+### Quick API Test
+
+```bash
+# Analyze a smart contract via API
+curl -X POST https://raxc-0g-agent-framework.fly.dev/analyze \
+  -H "Content-Type: application/json" \
+  -d '{
+    "contract": "contract VulnerableVault { ... }",
+    "name": "VulnerableVault"
+  }'
+```
+
+### Deployed Smart Contracts (0G Galileo Testnet)
+
+| Contract | Address | Network |
+|----------|---------|---------|
+| **RAXC Vault** | `0x7Ad0e4B636C63CdfF4e73895855E0a3Fe087C16c` | 0G Testnet (Chain ID: 16602) |
+| **USDC** | `0xd6A26c46B3c840878e34e5a8746DD0d7af13c9De` | 0G Testnet (Chain ID: 16602) |
+
+**Network Details:**
+- **RPC URL:** `https://evmrpc-testnet.0g.ai`
+- **Chain ID:** `16602`
+- **Explorer:** View contracts on 0G Galileo Testnet explorer
+
+**Full Web Interface:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app) — Analyze contracts with wallet integration
+
+---
+
+## 🚀 Quick Start (60 Seconds)
 
 ### Prerequisites
-
-**1. Install Rust (if not already installed)**
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+# Set environment variables
+export OPENAI_API_KEY="sk-your-key-here"  # Only for embeddings/similarity
+export USE_OPENAI_EMBEDDING="true"        # Enable semantic search
+export OG_STORAGE_RPC="https://rpc-storage-testnet.0g.ai"
+export OG_COMPUTE_ENDPOINT="https://api.compute.testnet.openlayer.network"  # All LLM reasoning
+
+# Create memory directory
+mkdir -p /tmp/raxc_memory
 ```
 
-**2. Clone the repository**
-```bash
-git clone https://github.com/your-username/raxc-0g-agent-framework.git
-cd raxc-0g-agent-framework/backend
-```
+> **Important:** OpenAI is only used for generating embeddings to find similar exploits. All vulnerability analysis, reasoning, and decision-making is performed by 0G Compute (qwen-2.5-7b). The testnet does not yet support embedding models on 0G Compute.
 
-**3. Configure environment variables**
-
-Copy `.env.example` to `.env` and update with your API keys:
+### Option 1: Use as a Library
 
 ```bash
-# 0G Compute API key (required - for LLM reasoning)
-OG_COMPUTE_API_KEY=app-sk-your-0g-compute-key
-
-# OpenAI API key (optional - only for embeddings)
-OPENAI_API_KEY=sk-your-openai-key
-USE_OPENAI_EMBEDDING=true
-
-# Blockchain RPC (required for production API)
-RPC_URL=https://evmrpc-testnet.0g.ai
-VAULT_ADDRESS=0x7Ad0e4B636C63CdfF4e73895855E0a3Fe087C16c
-OPERATOR_PRIVATE_KEY=your_operator_private_key
+# Add to your project
+cargo add raxc
 ```
 
-> **Note:** OpenAI is only used for embeddings to find similar exploits. All vulnerability analysis and reasoning is performed by 0G Compute.
+```rust
+use raxc::{Agent, build_og_storage, build_og_compute};
 
----
-
-### Example 1: Step 9.9 Comprehensive Analysis (Recommended)
-
-**Run the full Step 9.9 agent with comprehensive vulnerability analysis:**
-
-```bash
-cd backend
-cargo run --example agent_example
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // Initialize 0G infrastructure
+    let storage = build_og_storage()?;
+    let compute = build_og_compute()?;
+    
+    // Create agent
+    let mut agent = Agent::new(storage, compute);
+    
+    // Analyze your contract
+    let contract = r#"
+        contract VulnerableVault {
+            mapping(address => uint) public balances;
+            function withdraw(uint amount) public {
+                require(balances[msg.sender] >= amount);
+                (bool success, ) = msg.sender.call{value: amount}("");
+                balances[msg.sender] -= amount;
+            }
+        }
+    "#;
+    
+    let result = agent.analyze(contract, "VulnerableVault").await?;
+    println!("Vulnerability: {}", result.vulnerability_found);
+    println!("Risk Level: {}", result.risk_level);
+    println!("Confidence: {}%", result.confidence);
+    
+    Ok(())
+}
 ```
 
-**What it does:**
-- Loads 777 exploits from 0G Storage
-- Analyzes a vulnerable contract using Step 9.9 pipeline
-- Runs all 13 phases: Tool Registry → Consensus → Risk Intelligence → Attack Simulation → Graph Construction → Consistency Check → Final Decision → Attestation
-- Generates comprehensive markdown report
-
-**Expected output:** Full vulnerability report with HIGH_RISK reentrancy detection (87% confidence)
-
----
-
-### Example 2: Test 0G Storage Integration
-
-**Verify 0G Storage connection and exploit loading:**
-
+### Option 2: Run Example
 ```bash
 cd backend
-cargo run --example test_og_storage_implement
+cargo run --example agent_example_openai
 ```
 
-**What it does:**
-- Downloads 777 exploits from 0G Storage (721 protocols + 56 cases)
-- Tests Base64 decoding and parsing
-- Shows success/failure for each exploit
-- Displays total loaded (expected: 607 valid exploits)
-
-**Expected output:** Summary showing 607 loaded, 170 decode failures (normal)
-
----
-
-### Run Production API Server
-
-**Start the full API server with payment verification:**
-
-```bash
-cd backend
-cargo run --bin api
-```
-
-**Features:**
-- ✅ Step 9.9 AgentCore with comprehensive analysis
-- ✅ Payment verification via RaxcCreditVault smart contract
-- ✅ Transaction verification on 0G blockchain
-- ✅ RESTful API endpoints (POST /analyze, GET /reports/{file})
-- ✅ Runs on port 8080
-
-See API documentation in [backend/src/api.rs](backend/src/api.rs) for endpoint details.
-
----
-
-### Quick Reference
-
-| Example | Command | Purpose | Time |
-|---------|---------|---------|------|
-| **Step 9.9 Analysis** | `cargo run --example agent_example` | Full vulnerability analysis with comprehensive report | 15-30s |
-| **Storage Test** | `cargo run --example test_og_storage_implement` | Verify 0G Storage connection and exploit loading | 1-2 min |
-| **Production API** | `cargo run --bin api` | Start API server with payment verification (port 8080) | 1-2 min startup |
-
----
-
-### Expected Output (Example 1)
-
-When running the Step 9.9 agent example, you'll see:
+**Expected Output:**
 ```
 [*] Running RAXC Intelligent Agent Framework...
 [✓] Loaded 777 exploits from DeFiHackLabs
@@ -345,30 +354,6 @@ Primary Signal: RaxcAnalyzer detected vulnerability via RAG semantic similarity
 Supporting Evidence:
   • PatternDetectorTool confirmed CEI pattern violation
 ```
-
----
-
-### Troubleshooting
-
-**Issue: "0g-cli not found"**
-- The 0G CLI binary is required for 0G Storage access
-- Download from [0G Storage docs](https://docs.0g.ai)
-- Place in `backend/` directory or update `CLI_PATH` in code
-
-**Issue: "Base64 decode failed" warnings**
-- Expected behavior: ~153/777 exploits will fail decode
-- System will load 607 valid exploits successfully
-- Does not affect analysis quality
-
-**Issue: Missing API keys**
-- Set `OG_COMPUTE_API_KEY` in `.env` (required)
-- Set `OPENAI_API_KEY` in `.env` (optional, for embeddings)
-- Get 0G Compute key from [0G Network](https://0g.ai)
-
-**Issue: RPC connection errors**
-- Check `RPC_URL` in `.env` points to active 0G testnet
-- Default: `https://evmrpc-testnet.0g.ai`
-- Verify network connectivity
 
 ---
 
@@ -455,4 +440,4 @@ MIT License — see LICENSE file
 
 **🚀 The RAXC Intelligent Agent Framework is production-ready for advanced smart contract security analysis!**
 
-Get started: `cargo run --example agent_example` or see the [Quick Start guide](#-quick-start)
+Get started: `cargo run --example agent_example_openai`
