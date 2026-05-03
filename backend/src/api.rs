@@ -12,7 +12,8 @@ Endpoints:
 */
 
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use anyhow::Context;
 use axum::{
@@ -27,7 +28,7 @@ use ethers::{
   prelude::*,
   providers::{Http, Provider},
 };
-use raxc::{build_og_compute, build_og_storage, load_env, Agent};
+use raxc::{build_og_compute, build_og_storage, load_env, AgentCore, RaxcAnalyzer, GasAnalyzerTool, PatternDetectorTool};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::cors::{Any, CorsLayer};
@@ -46,7 +47,7 @@ abigen!(
 
 #[derive(Clone)]
 struct AppState {
-  agent: Arc<Agent>,
+  agent_core: Arc<Mutex<AgentCore>>,
   provider: Arc<Provider<Http>>,
   vault_contract: Arc<RaxcVault<Provider<Http>>>,
   operator_wallet: Arc<LocalWallet>,
@@ -79,7 +80,15 @@ struct AnalyzeResponse {
   vulnerability_found: bool,
   risk_level: String,
   vulnerability_type: String,
-  confidence: u8,
+  confidence: f64,
+  risk_score: f64,
+  exploitability: f64,
+  attack_probability: f64,
+  consistency_score: f64,
+  graph_nodes: usize,
+  graph_edges: usize,
+  replay_id: String,
+  trace_hash: String,
 }
 
 // ─── Error type ───────────────────────────────────────────────────────────────
@@ -208,22 +217,44 @@ async fn handle_analyze(
 
   println!("[*] Payment marked as used: {}", req.payment_id);
 
-  // 4. Run analysis (now that payment is verified and marked)
-  let result = state.agent.run(req.contract, req.name).await?;
+  // 4. Run Step 9.9 analysis (now that payment is verified and marked)
+  println!("[*] Running RAXC Hybrid Authority Agent (Tools→Agent→LLM)...");
+  let result = {
+    let core = state.agent_core.lock().await;
+    core.analyze(&req.contract, &req.name).await?
+  };
+
+  println!("[✓] Analysis complete: {}", result.filename);
 
   // Store in memory — no disk write
   state
     .reports
     .lock()
-    .unwrap()
+    .await
     .insert(result.filename.clone(), result.markdown.clone());
 
+  // Extract primary vulnerability type
+  let vulnerability_type = result
+    .decision
+    .primary_vulnerability
+    .clone()
+    .unwrap_or_else(|| "None".to_string());
+
+  // Build response with Step 9.9 comprehensive data
   Ok(Json(AnalyzeResponse {
     download_url: format!("/reports/{}", result.filename),
-    vulnerability_found: result.vulnerability_found,
-    risk_level: result.risk_level,
-    vulnerability_type: result.vulnerability_type,
-    confidence: (result.confidence as u8).min(100),
+    vulnerability_found: result.decision.vulnerability_found,
+    risk_level: result.decision.risk_level.clone(),
+    vulnerability_type,
+    confidence: (result.final_decision.final_confidence * 100.0).round(),
+    risk_score: (result.final_decision.final_risk_score * 100.0).round(),
+    exploitability: (result.intelligence_report.exploitability_score * 100.0).round(),
+    attack_probability: (result.final_decision.final_attack_probability * 100.0).round(),
+    consistency_score: (result.consistency_check.consistency_score * 100.0).round(),
+    graph_nodes: result.attack_graph.nodes.len(),
+    graph_edges: result.attack_graph.edges.len(),
+    replay_id: result.attestation.replay_id.clone(),
+    trace_hash: result.attestation.execution_trace_hash.clone(),
   }))
 }
 
@@ -241,7 +272,7 @@ async fn download_report(
   let content = state
     .reports
     .lock()
-    .unwrap()
+    .await
     .get(&safe)
     .cloned()
     .ok_or_else(|| anyhow::anyhow!("Report not found: {}", safe))?;
@@ -297,11 +328,19 @@ async fn main() -> anyhow::Result<()> {
 
   println!("[*] Vault contract: {}", vault_address);
 
-  // Initialize Agent
-  let agent = Arc::new(Agent::new(storage, compute));
+  // Initialize Step 9.9 AgentCore with tools
+  println!("[*] Initializing Step 9.9 AgentCore with comprehensive analysis...");
+  let mut agent_core = AgentCore::new(storage, compute);
+  
+  // Register tools
+  agent_core.tools.register(Box::new(RaxcAnalyzer::new(agent_core.memory.storage.clone(), agent_core.compute.clone())));
+  agent_core.tools.register(Box::new(GasAnalyzerTool));
+  agent_core.tools.register(Box::new(PatternDetectorTool));
+  
+  println!("[✓] AgentCore initialized with {} tools", agent_core.tools.tool_count());
 
   let state = AppState {
-    agent,
+    agent_core: Arc::new(Mutex::new(agent_core)),
     provider: provider.clone(),
     vault_contract,
     operator_wallet: Arc::new(operator_wallet),
