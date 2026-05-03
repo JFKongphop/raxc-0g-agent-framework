@@ -20,8 +20,8 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tokio::task;
 
-const CLI_PATH: &str = "../0g-cli";
-const MANIFEST_PATH: &str = "../manifest.json";
+const CLI_PATH: &str = "./0g-cli";
+const MANIFEST_PATH: &str = "./manifest.json";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ExploitMetadata {
