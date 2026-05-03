@@ -22,8 +22,8 @@ use std::process::Command;
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-const CLI_PATH: &str = "../0g-cli";
-const MANIFEST_PATH: &str = "../manifest.json";
+const CLI_PATH: &str = "./0g-cli";
+const MANIFEST_PATH: &str = "./manifest.json";
 const TOP_K: usize = 5;
 
 // ─── Data types ───────────────────────────────────────────────────────────────

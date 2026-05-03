@@ -19,7 +19,7 @@ use std::sync::Arc;
 use tokio::sync::Semaphore;
 use tokio::task;
 
-const CLI_PATH: &str = "../0g-cli";
+const CLI_PATH: &str = "./0g-cli";
 const CONCURRENT_LIMIT: usize = 10;
 
 // EXACT copy from test_og_storage.rs

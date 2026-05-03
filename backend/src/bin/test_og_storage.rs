@@ -14,8 +14,8 @@ async fn main() -> Result<()> {
   let indexer_rpc = std::env::var("OG_INDEXER_RPC")
     .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
   let stream_id = "defi_cases".to_string();
-  let cli_path = "../0g-cli".to_string();
-  let manifest_path = "../manifest.json".to_string();
+  let cli_path = "./0g-cli".to_string();
+  let manifest_path = "./manifest.json".to_string();
 
   let start = std::time::Instant::now();
   

@@ -57,9 +57,9 @@ pub async fn build_og_storage() -> Result<OgStorageClient> {
     .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
   let stream_id =
     std::env::var("OG_STORAGE_STREAM_ID").unwrap_or_else(|_| "defi_cases".to_string());
-  let cli_path = std::env::var("OG_CLI_PATH").unwrap_or_else(|_| "../0g-cli".to_string());
+  let cli_path = std::env::var("OG_CLI_PATH").unwrap_or_else(|_| "./0g-cli".to_string());
   let manifest_path =
-    std::env::var("OG_MANIFEST_PATH").unwrap_or_else(|_| "../manifest.json".to_string());
+    std::env::var("OG_MANIFEST_PATH").unwrap_or_else(|_| "./manifest.json".to_string());
 
   OgStorageClient::new(indexer_rpc, stream_id, cli_path, manifest_path).await
 }
