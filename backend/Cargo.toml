@@ -11,6 +11,14 @@ documentation = "https://github.com/kongphop3212/raxc-0g-agent-framework#readme"
 readme = "README.md"
 keywords = ["security", "defi", "smart-contracts", "vulnerability", "rag"]
 categories = ["cryptography::cryptocurrencies", "development-tools", "web-programming"]
+exclude = [
+    "0g-cli",
+    "target/",
+    "reports/",
+    ".DS_Store",
+    "Dockerfile",
+    "agent_analyze.sh",
+]
 
 [lib]
 path = "src/lib.rs"
