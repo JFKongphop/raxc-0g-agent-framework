@@ -28,6 +28,8 @@ struct ChatMessage {
 struct ChatCompletionRequest {
   model: String,
   messages: Vec<ChatMessage>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  max_tokens: Option<u32>,
 }
 
 #[derive(Deserialize)]
@@ -63,7 +65,13 @@ impl OgComputeClient {
 
   /// Run inference on the 0G Compute network
   /// Uses OpenAI-compatible chat completions API format
+  /// max_tokens = 8192 (maximum allowed by 0G Compute)
   pub async fn infer(&self, prompt: &str) -> Result<String> {
+    self.infer_with_max_tokens(prompt, Some(8192)).await
+  }
+
+  /// Run inference with custom max_tokens parameter
+  pub async fn infer_with_max_tokens(&self, prompt: &str, max_tokens: Option<u32>) -> Result<String> {
     let req = ChatCompletionRequest {
       model: self.model.clone(),
       messages: vec![
@@ -76,6 +84,7 @@ impl OgComputeClient {
           content: prompt.to_string(),
         },
       ],
+      max_tokens,
     };
 
     let mut request = self.http.post(&self.endpoint).json(&req);
@@ -85,12 +94,18 @@ impl OgComputeClient {
       request = request.bearer_auth(api_key);
     }
 
-    let resp: ChatCompletionResponse = request
+    let http_resp = request
       .send()
       .await
-      .context("Failed to send inference request to 0G Compute")?
-      .error_for_status()
-      .context("0G Compute inference request returned error")?
+      .context("Failed to send inference request to 0G Compute")?;
+
+    if !http_resp.status().is_success() {
+      let status = http_resp.status();
+      let body = http_resp.text().await.unwrap_or_default();
+      anyhow::bail!("0G Compute error {}: {}", status, body);
+    }
+
+    let resp: ChatCompletionResponse = http_resp
       .json()
       .await
       .context("Failed to parse 0G Compute inference response")?;
