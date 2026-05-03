@@ -1,3 +1,16 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# RAXC Production API Dockerfile (backend/src/api.rs)
+# 
+# Builds the production API server with:
+# - Step 9.9 AgentCore (comprehensive vulnerability analysis)
+# - Payment verification via RaxcCreditVault smart contract
+# - 0G Storage integration (777 exploit database)
+# - 0G Compute reasoning (qwen/qwen-2.5-7b-instruct)
+# 
+# Exposes: Port 8080
+# Binary: /app/api
+# ══════════════════════════════════════════════════════════════════════════════
+
 # ── Stage 1: build ────────────────────────────────────────────────────────────
 FROM rust:1.95-alpine AS builder
 
@@ -19,7 +32,7 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && \
     echo "pub fn dummy() {}" > src/lib.rs && \
     cargo fetch
 
-# Build with the real source
+# Build the API binary (production endpoint with Step 9.9 AgentCore + payment verification)
 COPY backend/src ./src
 RUN cargo build --release --bin api && strip target/release/api
 
@@ -30,22 +43,15 @@ RUN apk add --no-cache ca-certificates openssl curl
 
 WORKDIR /app
 
-# Copy the stripped binary
+# Copy the stripped API binary (backend/src/api.rs compiled)
 COPY --from=builder /app/target/release/api /app/api
 
-# Copy .env file from backend
-COPY backend/.env /app/.env
+# Copy runtime configuration files
+COPY backend/manifest.json /app/manifest.json
 
-# Create startup script to load env vars
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'set -a' >> /app/start.sh && \
-    echo 'if [ -f /app/.env ]; then' >> /app/start.sh && \
-    echo '  . /app/.env' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo 'set +a' >> /app/start.sh && \
-    echo 'exec /app/api' >> /app/start.sh && \
-    chmod +x /app/start.sh
+# Environment variables are provided by Fly.io secrets
+# Set via: fly secrets set KEY=VALUE -a raxc-0g-agent-framework
 
 EXPOSE 8080
 
-CMD ["/app/start.sh"]
+CMD ["/app/api"]
