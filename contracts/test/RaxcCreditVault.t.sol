@@ -104,7 +104,7 @@ contract RaxcCreditVaultTest is Test {
 
     // Check that balance decreased
     assertLt(balanceAfter, balanceBefore, "Balance should decrease");
-    
+
     // Check the deduction is approximately correct (allow for rounding)
     assertApproxEqAbs(
       balanceBefore - balanceAfter,
@@ -267,7 +267,7 @@ contract RaxcCreditVaultTest is Test {
   }
 
   function testPayForAnalysis() public {
-    uint256 estimatedPromptTokens = 50000; // 50k tokens
+    uint256 estimatedPromptTokens = 50_000; // 50k tokens
     uint256 estimatedCompletionTokens = 8000; // 8k tokens (fixed)
 
     // Calculate expected cost
@@ -295,7 +295,7 @@ contract RaxcCreditVaultTest is Test {
   }
 
   function testMarkPaymentUsed() public {
-    uint256 estimatedPromptTokens = 50000;
+    uint256 estimatedPromptTokens = 50_000;
     uint256 estimatedCompletionTokens = 8000;
 
     vm.startPrank(user1);
@@ -309,7 +309,7 @@ contract RaxcCreditVaultTest is Test {
     vault.markPaymentUsed(paymentId);
 
     // Verify payment is now marked as used
-    (bool isValid, , ) = vault.verifyPayment(paymentId);
+    (bool isValid,,) = vault.verifyPayment(paymentId);
     assertFalse(isValid, "Payment should be invalid after use");
 
     RaxcCreditVault.Payment memory payment = vault.getPayment(paymentId);
@@ -328,9 +328,9 @@ contract RaxcCreditVaultTest is Test {
 
   function testOnlyOperatorCanMarkPaymentUsed() public {
     vm.startPrank(user1);
-    (,, uint256 cost) = vault.calculateCost(50000, 8000);
+    (,, uint256 cost) = vault.calculateCost(50_000, 8000);
     usdc.approve(address(vault), cost);
-    bytes32 paymentId = vault.payForAnalysis(50000, 8000);
+    bytes32 paymentId = vault.payForAnalysis(50_000, 8000);
     vm.stopPrank();
 
     // Non-operator tries to mark as used
@@ -360,4 +360,3 @@ contract RaxcCreditVaultTest is Test {
     assertEq(vault.getCreditBalance(user1), exactMinimum);
   }
 }
-

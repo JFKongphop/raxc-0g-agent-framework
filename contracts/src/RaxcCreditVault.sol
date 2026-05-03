@@ -58,7 +58,7 @@ contract RaxcCreditVault is ERC4626, AccessControl {
     bool used;
     uint256 timestamp;
   }
-  
+
   mapping(bytes32 => Payment) public payments; // paymentId => Payment
 
   // Events
@@ -284,7 +284,10 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   function payForAnalysis(
     uint256 estimatedPromptTokens,
     uint256 estimatedCompletionTokens
-  ) external returns (bytes32 paymentId) {
+  )
+    external
+    returns (bytes32 paymentId)
+  {
     // Calculate required payment
     (,, uint256 totalCost) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
     require(totalCost > 0, "Payment amount must be greater than zero");
@@ -310,11 +313,11 @@ contract RaxcCreditVault is ERC4626, AccessControl {
     totalCostsDeducted += totalCost;
 
     // Track platform fee (10%)
-    (, uint256 platformFee, ) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
+    (, uint256 platformFee,) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
     totalFeesCollected += platformFee;
-    
+
     // Track actual cost (90%)
-    (uint256 actualCost, , ) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
+    (uint256 actualCost,,) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
     totalActualCosts += actualCost;
 
     emit PaymentReceived(paymentId, msg.sender, totalCost, estimatedPromptTokens, estimatedCompletionTokens);
@@ -341,7 +344,7 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   function markPaymentUsed(bytes32 paymentId) external onlyRole(OPERATOR_ROLE) {
     require(payments[paymentId].user != address(0), "Payment does not exist");
     require(!payments[paymentId].used, "Payment already used");
-    
+
     payments[paymentId].used = true;
     emit PaymentUsed(paymentId, payments[paymentId].user);
   }
