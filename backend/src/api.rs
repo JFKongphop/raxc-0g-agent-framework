@@ -27,8 +27,7 @@ use ethers::{
   prelude::*,
   providers::{Http, Provider},
 };
-use raxc::{analyze, build_markdown, build_og_compute, build_og_storage, load_env, match_functions, parse_report_fields, OgComputeClient, OgStorageClient};
-use reqwest::Client;
+use raxc::{build_og_compute, build_og_storage, load_env, Agent};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tower_http::cors::{Any, CorsLayer};
@@ -45,15 +44,14 @@ abigen!(
 
 // ─── Shared state ─────────────────────────────────────────────────────────────
 
+#[derive(Clone)]
 struct AppState {
-  http: Client,
-  storage: OgStorageClient,
-  compute: OgComputeClient,
+  agent: Arc<Agent>,
   provider: Arc<Provider<Http>>,
-  vault_contract: RaxcVault<Provider<Http>>,
-  operator_wallet: LocalWallet,
+  vault_contract: Arc<RaxcVault<Provider<Http>>>,
+  operator_wallet: Arc<LocalWallet>,
   /// In-memory report store: filename → markdown content (no disk writes)
-  reports: Mutex<HashMap<String, String>>,
+  reports: Arc<Mutex<HashMap<String, String>>>,
 }
 
 // ─── Request / response types ─────────────────────────────────────────────────
@@ -78,10 +76,10 @@ fn default_name() -> String {
 #[derive(Serialize)]
 struct AnalyzeResponse {
   download_url: String,
-  vulnerability_found: String,
+  vulnerability_found: bool,
   risk_level: String,
   vulnerability_type: String,
-  confidence: String,
+  confidence: u8,
 }
 
 // ─── Error type ───────────────────────────────────────────────────────────────
@@ -109,8 +107,9 @@ where
 
 // ─── Handlers ─────────────────────────────────────────────────────────────────
 
+#[axum::debug_handler]
 async fn handle_analyze(
-  State(state): State<Arc<AppState>>,
+  State(state): State<AppState>,
   Json(req): Json<AnalyzeRequest>,
 ) -> Result<Json<AnalyzeResponse>, AppError> {
   // 1. Parse payment ID, tx hash, and user address
@@ -151,22 +150,19 @@ async fn handle_analyze(
   // Check transaction was sent to the vault contract
   if tx_receipt.to != Some(state.vault_contract.address()) {
     return Err(
-      anyhow::anyhow!(
-        "Transaction recipient mismatch: not sent to vault contract"
-      )
-      .into(),
+      anyhow::anyhow!("Transaction recipient mismatch: not sent to vault contract").into(),
     );
   }
 
   println!(
     "[*] Transaction verified: {} from {} (status: success)",
-    tx_hash,
-    user_address
+    tx_hash, user_address
   );
 
   // 3. Verify payment on-chain
   let (is_valid, payment_user, amount) = state
     .vault_contract
+    .as_ref()
     .verify_payment(payment_id)
     .call()
     .await
@@ -194,9 +190,12 @@ async fn handle_analyze(
   );
 
   // 3. Mark payment as used (before analysis to prevent replay attacks)
-  let signer = SignerMiddleware::new(state.provider.as_ref().clone(), state.operator_wallet.clone());
-  let contract_with_signer = state.vault_contract.connect(Arc::new(signer));
-  
+  let signer = SignerMiddleware::new(
+    state.provider.as_ref().clone(),
+    state.operator_wallet.as_ref().clone(),
+  );
+  let contract_with_signer = state.vault_contract.as_ref().clone().connect(Arc::new(signer));
+
   // Call markPaymentUsed using the method() pattern - all in one chain
   contract_with_signer
     .method::<_, H256>("markPaymentUsed", payment_id)
@@ -210,34 +209,26 @@ async fn handle_analyze(
   println!("[*] Payment marked as used: {}", req.payment_id);
 
   // 4. Run analysis (now that payment is verified and marked)
-  let (report, results) =
-    analyze(&state.http, &state.storage, &state.compute, &req.contract).await?;
-
-  let func_matches =
-    match_functions(&state.http, &state.storage, &req.contract, 3).await?;
-
-  let (filename, content) = build_markdown(&report, &results, &req.name, Some(&func_matches));
+  let result = state.agent.run(req.contract, req.name).await?;
 
   // Store in memory — no disk write
   state
     .reports
     .lock()
     .unwrap()
-    .insert(filename.clone(), content);
-
-  let fields = parse_report_fields(&report);
+    .insert(result.filename.clone(), result.markdown.clone());
 
   Ok(Json(AnalyzeResponse {
-    download_url: format!("/reports/{}", filename),
-    vulnerability_found: fields.vuln_found,
-    risk_level: fields.risk_level,
-    vulnerability_type: fields.vuln_type,
-    confidence: fields.confidence,
+    download_url: format!("/reports/{}", result.filename),
+    vulnerability_found: result.vulnerability_found,
+    risk_level: result.risk_level,
+    vulnerability_type: result.vulnerability_type,
+    confidence: (result.confidence as u8).min(100),
   }))
 }
 
 async fn download_report(
-  State(state): State<Arc<AppState>>,
+  State(state): State<AppState>,
   Path(filename): Path<String>,
 ) -> Result<Response, AppError> {
   // Strip directory components to prevent path traversal.
@@ -281,14 +272,12 @@ async fn main() -> anyhow::Result<()> {
   let operator_key =
     std::env::var("OPERATOR_PRIVATE_KEY").context("OPERATOR_PRIVATE_KEY not set")?;
 
-  let http = Client::new();
-  let storage = build_og_storage()?;
+  let storage = build_og_storage().await?;
   let compute = build_og_compute()?;
 
   // Initialize blockchain provider
-  let provider = Arc::new(
-    Provider::<Http>::try_from(rpc_url).context("Failed to connect to RPC endpoint")?
-  );
+  let provider =
+    Arc::new(Provider::<Http>::try_from(rpc_url).context("Failed to connect to RPC endpoint")?);
   let chain_id = provider.get_chainid().await?;
   println!("[*] Connected to chain ID: {}", chain_id);
 
@@ -304,19 +293,20 @@ async fn main() -> anyhow::Result<()> {
   let vault_address: Address = vault_address
     .parse()
     .context("Invalid VAULT_ADDRESS format")?;
-  let vault_contract = RaxcVault::new(vault_address, provider.clone());
+  let vault_contract = Arc::new(RaxcVault::new(vault_address, provider.clone()));
 
   println!("[*] Vault contract: {}", vault_address);
 
-  let state = Arc::new(AppState {
-    http,
-    storage,
-    compute,
+  // Initialize Agent
+  let agent = Arc::new(Agent::new(storage, compute));
+
+  let state = AppState {
+    agent,
     provider: provider.clone(),
     vault_contract,
-    operator_wallet,
-    reports: Mutex::new(HashMap::new()),
-  });
+    operator_wallet: Arc::new(operator_wallet),
+    reports: Arc::new(Mutex::new(HashMap::new())),
+  };
 
   let cors = CorsLayer::new()
     .allow_origin(Any)
