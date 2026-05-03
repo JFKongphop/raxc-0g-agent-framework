@@ -7,12 +7,12 @@ edition = "2021"
 path = "src/lib.rs"
 
 [[bin]]
-name = "analyze"
-path = "src/main.rs"
-
-[[bin]]
 name = "api"
 path = "src/api.rs"
+
+[[bin]]
+name = "api_step9_9"
+path = "src/api_step9_9.rs"
 
 [dependencies]
 tokio          = { version = "1",    features = ["full"] }
@@ -23,9 +23,14 @@ dotenv         = "0.15"
 regex          = "1"
 chrono         = { version = "0.4",  features = ["clock"] }
 anyhow         = "1"
-qdrant-client  = "1"
-axum           = "0.7"
+urlencoding    = "2"
+axum           = { version = "0.7", features = ["macros"] }
 tower-http     = { version = "0.5", features = ["cors"] }
 ethers         = { version = "2.0", features = ["abigen", "ws"] }
 hex            = "0.4"
+base64         = "0.21"
+tempfile       = "3"
+async-trait    = "0.1"
+futures        = "0.3"
+md5            = "0.7"
 
