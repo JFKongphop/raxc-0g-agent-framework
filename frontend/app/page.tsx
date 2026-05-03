@@ -82,7 +82,7 @@ export default function Home() {
             RA<span style={{ color: 'var(--purple)' }}>X</span>C Security Agent
           </h1>
           <p style={{ fontSize: 18, color: 'var(--text-muted)', maxWidth: 600, margin: '0 auto' }}>
-            Agentic vulnerability detection using real exploit patterns
+            Agentic vulnerability detection using real exploit patterns {process.env.NEXT_PUBLIC_API_URL}
           </p>
         </div>
         

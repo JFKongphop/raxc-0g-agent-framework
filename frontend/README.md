@@ -32,8 +32,9 @@ cp .env.example .env.local
 Update with your values:
 
 ```bash
-# Backend API
-NEXT_PUBLIC_API_URL=http://localhost:8080
+# Backend API (use production or local)
+NEXT_PUBLIC_API_URL=https://raxc-0g-agent-framework.fly.dev  # Production
+# NEXT_PUBLIC_API_URL=http://localhost:8080  # Local development
 
 # Initia Network
 NEXT_PUBLIC_RPC_URL=https://jsonrpc-evm-1.anvil.asia-southeast.initia.xyz
