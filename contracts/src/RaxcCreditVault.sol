@@ -22,6 +22,9 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   // Role for admin functions
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
+  // Recipient address for automatic cost transfers
+  address public costRecipient;
+
   // Platform fee percentage (10% = 1000 basis points)
   uint256 public constant PLATFORM_FEE_BPS = 1000;
   uint256 public constant BPS_DENOMINATOR = 10_000;
@@ -36,10 +39,14 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   // Minimum deposit requirement (1 USDC with 6 decimals)
   uint256 public constant MIN_DEPOSIT = 1_000_000; // 1 USDC
 
-  // Track total fees collected for platform
+  // Track total fees collected for platform (10% platform fee)
   uint256 public totalFeesCollected;
 
+  // Track total actual costs (90% - the OpenAI API cost portion)
+  uint256 public totalActualCosts;
+
   // Track total costs deducted (to adjust totalAssets calculation)
+  // This is totalFeesCollected + totalActualCosts
   uint256 public totalCostsDeducted;
 
   // Payment tracking for pay-per-analysis model
@@ -75,6 +82,8 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   event PaymentUsed(bytes32 indexed paymentId, address indexed user);
 
   event FeesWithdrawn(address indexed recipient, uint256 amount);
+  event ActualCostsWithdrawn(address indexed recipient, uint256 amount);
+  event CostRecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
   event OperatorAdded(address indexed operator);
   event OperatorRemoved(address indexed operator);
 
@@ -87,6 +96,18 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   constructor(IERC20 _asset, string memory _name, string memory _symbol) ERC4626(_asset) ERC20(_name, _symbol) {
     _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _grantRole(ADMIN_ROLE, msg.sender);
+    costRecipient = msg.sender; // Default to deployer
+  }
+
+  /**
+   * @notice Set the recipient address for automatic cost transfers
+   * @param _recipient Address to receive costs (typically backend wallet)
+   */
+  function setCostRecipient(address _recipient) external onlyRole(ADMIN_ROLE) {
+    require(_recipient != address(0), "Invalid recipient address");
+    address oldRecipient = costRecipient;
+    costRecipient = _recipient;
+    emit CostRecipientUpdated(oldRecipient, _recipient);
   }
 
   /**
@@ -149,6 +170,7 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   /**
    * @notice Deduct analysis cost from user's vault balance
    * @dev Only callable by operator role (backend service)
+   *      Automatically transfers actual cost to costRecipient for immediate reimbursement
    * @param user Address of the user to deduct from
    * @param promptTokens Number of prompt tokens used in the analysis
    * @param completionTokens Number of completion tokens used in the analysis
@@ -168,11 +190,18 @@ contract RaxcCreditVault is ERC4626, AccessControl {
     // Burn the user's shares - this reduces their balance
     _burn(user, sharesToBurn);
 
-    // Track the total costs deducted (affects totalAssets calculation)
-    totalCostsDeducted += totalCost;
+    // Transfer actual cost immediately to backend for OpenAI reimbursement
+    if (actualCost > 0 && costRecipient != address(0)) {
+      IERC20(asset()).safeTransfer(costRecipient, actualCost);
+    } else {
+      // If no recipient set, accumulate for manual withdrawal
+      totalActualCosts += actualCost;
+      totalCostsDeducted += actualCost;
+    }
 
-    // Platform fee portion is tracked separately for admin withdrawal
+    // Platform fee stays in vault for admin withdrawal
     totalFeesCollected += platformFee;
+    totalCostsDeducted += platformFee;
 
     emit CostDeducted(user, promptTokens, completionTokens, actualCost, platformFee, totalCost);
   }
@@ -204,11 +233,35 @@ contract RaxcCreditVault is ERC4626, AccessControl {
   }
 
   /**
+   * @notice Withdraw actual costs (for reimbursing OpenAI API costs)
+   * @dev Only callable by admin. This withdraws the 90% actual cost portion.
+   * @param recipient Address to receive the costs (typically backend wallet)
+   * @param amount Amount of actual costs to withdraw
+   */
+  function withdrawActualCosts(address recipient, uint256 amount) external onlyRole(ADMIN_ROLE) {
+    require(amount <= totalActualCosts, "Amount exceeds actual costs");
+
+    totalActualCosts -= amount;
+    totalCostsDeducted -= amount; // Reduce deducted costs since assets are leaving
+    IERC20(asset()).safeTransfer(recipient, amount);
+
+    emit ActualCostsWithdrawn(recipient, amount);
+  }
+
+  /**
    * @notice Get the total amount of fees available for withdrawal
    * @return The total fees collected and available
    */
   function getAvailableFees() external view returns (uint256) {
     return totalFeesCollected;
+  }
+
+  /**
+   * @notice Get the total amount of actual costs available for withdrawal
+   * @return The total actual costs collected and available
+   */
+  function getAvailableActualCosts() external view returns (uint256) {
+    return totalActualCosts;
   }
 
   /**
@@ -256,9 +309,13 @@ contract RaxcCreditVault is ERC4626, AccessControl {
     // Track as deducted cost (removed from vault's totalAssets)
     totalCostsDeducted += totalCost;
 
-    // Track platform fee
+    // Track platform fee (10%)
     (, uint256 platformFee, ) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
     totalFeesCollected += platformFee;
+    
+    // Track actual cost (90%)
+    (uint256 actualCost, , ) = calculateCost(estimatedPromptTokens, estimatedCompletionTokens);
+    totalActualCosts += actualCost;
 
     emit PaymentReceived(paymentId, msg.sender, totalCost, estimatedPromptTokens, estimatedCompletionTokens);
   }
