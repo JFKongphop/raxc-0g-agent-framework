@@ -9,7 +9,7 @@ help:
 	@echo "  make test-storage        - Run test_og_storage binary"
 	@echo "  make test-storage-impl   - Run test_og_storage_implement example"
 	@echo "  make rag                 - Run RAG pipeline binary"
-	@echo "  make agent_analyze_      - Run analyze_contract.sh script"
+	@echo "  make agent      - Run analyze_contract.sh script"
 	@echo "  make clean               - Clean build artifacts"
 
 # API Servers
@@ -34,8 +34,8 @@ rag:
 	cargo run --bin rag_pipeline
 
 # Shell Scripts
-agent_analyze_:
-	./agent_analyze_.sh
+agent:
+	./agent_analyze.sh
 
 # Utility
 clean:
