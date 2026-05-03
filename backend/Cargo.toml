@@ -2,6 +2,15 @@
 name = "raxc"
 version = "0.1.0"
 edition = "2021"
+authors = ["RAXC Team"]
+description = "AI-Powered DeFi Smart Contract Vulnerability Scanner using RAG and 0G Infrastructure"
+license = "MIT"
+repository = "https://github.com/kongphop3212/raxc-0g-agent-framework"
+homepage = "https://raxc-0g-agent-framework.vercel.app"
+documentation = "https://github.com/kongphop3212/raxc-0g-agent-framework#readme"
+readme = "README.md"
+keywords = ["security", "defi", "smart-contracts", "vulnerability", "rag"]
+categories = ["cryptography::cryptocurrencies", "development-tools", "web-programming"]
 
 [lib]
 path = "src/lib.rs"
