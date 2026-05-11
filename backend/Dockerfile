@@ -21,7 +21,7 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && \
 
 # Build with the real source
 COPY src ./src
-RUN cargo build --release --bin api && strip target/release/api
+RUN cargo build --release --bin api_0g_storage && strip target/release/api_0g_storage
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM alpine:latest
@@ -30,11 +30,16 @@ RUN apk add --no-cache ca-certificates openssl curl
 
 WORKDIR /app
 
-# Copy only the stripped binary — secrets via -e / --env-file at runtime
-COPY --from=builder /app/target/release/api /app/api
+COPY --from=builder /app/target/release/api_0g_storage /app/api_0g_storage
 
-EXPOSE 8080
+# 0G Storage needs manifest + CLI to download exploits at startup
+COPY manifest.json /app/manifest.json
+COPY 0g-cli /app/0g-cli
+RUN chmod +x /app/0g-cli
+
+EXPOSE 3001
 
 # Required env vars at runtime:
-#   OPENAI_API_KEY, QDRANT_URL, QDRANT_API_KEY
-CMD ["/app/api"]
+#   OG_INDEXER_RPC, OG_STORAGE_STREAM_ID, OG_CLI_PATH, OG_MANIFEST_PATH
+#   OPENAI_API_KEY (for embeddings), STORAGE_PORT (default 3001)
+CMD ["/app/api_0g_storage"]
