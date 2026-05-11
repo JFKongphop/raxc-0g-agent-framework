@@ -306,3 +306,106 @@ fn cosine_similarity(a: &[f64], b: &[f64]) -> f64 {
     dot / (norm_a * norm_b)
   }
 }
+
+// ─── Remote Storage Client ────────────────────────────────────────────────────
+
+/// Result item from the remote storage API
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RemoteExploitResult {
+  pub score: f64,
+  pub exploit_name: String,
+  pub vuln_type: String,
+  pub chain: String,
+  pub date: String,
+  pub total_lost: String,
+  pub source: String,
+  pub code_snippet: String,
+  pub attack_tx: String,
+  pub embedding_dim: usize,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct RemoteQueryResponse {
+  pub results: Vec<RemoteExploitResult>,
+  pub total_searched: usize,
+  pub query_time_ms: u64,
+}
+
+/// HTTP client that queries the api_0g_storage server instead of loading locally.
+/// Use this in agent_example.rs and OpenClaw skill to avoid 2-3 min local load time.
+///
+/// Usage:
+///   let client = RemoteOgStorageClient::new("http://localhost:3001");
+///   let results = client.query(&embedding, 5).await?;
+pub struct RemoteOgStorageClient {
+  api_url: String,
+  client: reqwest::Client,
+}
+
+impl RemoteOgStorageClient {
+  /// Create a new remote client pointing to the api_0g_storage server
+  pub fn new(api_url: impl Into<String>) -> Self {
+    Self {
+      api_url: api_url.into().trim_end_matches('/').to_string(),
+      client: reqwest::Client::new(),
+    }
+  }
+
+  /// Create with default localhost URL
+  pub fn local() -> Self {
+    let port = std::env::var("STORAGE_PORT").unwrap_or_else(|_| "3001".to_string());
+    Self::new(format!("http://localhost:{}", port))
+  }
+
+  /// Query top-k similar exploits by embedding vector
+  /// Returns (score, exploit_name, vuln_type, total_lost, code_snippet)
+  pub async fn query(
+    &self,
+    embedding: &[f64],
+    top_k: usize,
+  ) -> Result<Vec<RemoteExploitResult>> {
+    let url = format!("{}/query", self.api_url);
+
+    let body = serde_json::json!({
+      "embedding": embedding,
+      "top_k": top_k
+    });
+
+    let resp = self
+      .client
+      .post(&url)
+      .json(&body)
+      .send()
+      .await
+      .context("Failed to reach api_0g_storage server — is it running?")?;
+
+    if !resp.status().is_success() {
+      let status = resp.status();
+      let text = resp.text().await.unwrap_or_default();
+      anyhow::bail!("Storage API error {}: {}", status, text);
+    }
+
+    let data: RemoteQueryResponse = resp.json().await.context("Failed to parse storage API response")?;
+
+    println!(
+      "[0G Storage] Queried {} exploits in {}ms — {} matches found",
+      data.total_searched, data.query_time_ms, data.results.len()
+    );
+
+    Ok(data.results)
+  }
+
+  /// Check if the storage server is healthy and how many exploits are loaded
+  pub async fn health(&self) -> Result<usize> {
+    let url = format!("{}/health", self.api_url);
+    let resp = self
+      .client
+      .get(&url)
+      .send()
+      .await
+      .context("Failed to reach api_0g_storage server")?;
+    let data: serde_json::Value = resp.json().await?;
+    let loaded = data["loaded"].as_u64().unwrap_or(0) as usize;
+    Ok(loaded)
+  }
+}
