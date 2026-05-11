@@ -34,24 +34,40 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs && \
 
 # Build the API binary (production endpoint with Step 9.9 AgentCore + payment verification)
 COPY backend/src ./src
-RUN cargo build --release --bin api && strip target/release/api
+RUN cargo build --release --bin api_0g_storage && strip target/release/api_0g_storage
 
-# ── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM alpine:latest
+# ── Stage 2: go-builder ───────────────────────────────────────────────────────
+# Build 0g-storage-client from source
+FROM golang:1.23-bookworm AS go-builder
 
-RUN apk add --no-cache ca-certificates openssl curl
+RUN git clone https://github.com/0gfoundation/0g-storage-client.git /tmp/0g-storage-client && \
+    cd /tmp/0g-storage-client && \
+    go build -o 0g-storage-client
+
+# ── Stage 3: runtime ──────────────────────────────────────────────────────────
+# Use Debian instead of Alpine for glibc compatibility with 0g-cli
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy the stripped API binary (backend/src/api.rs compiled)
-COPY --from=builder /app/target/release/api /app/api
+# Copy the stripped API binary
+COPY --from=builder /app/target/release/api_0g_storage /app/api_0g_storage
 
 # Copy runtime configuration files
 COPY backend/manifest.json /app/manifest.json
+
+# Copy 0g-cli from go-builder stage
+COPY --from=go-builder /tmp/0g-storage-client/0g-storage-client /app/0g-cli
+RUN chmod +x /app/0g-cli
 
 # Environment variables are provided by Fly.io secrets
 # Set via: fly secrets set KEY=VALUE -a raxc-0g-agent-framework
 
 EXPOSE 8080
 
-CMD ["/app/api"]
+CMD ["/app/api_0g_storage"]

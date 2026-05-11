@@ -139,7 +139,7 @@ async fn main() -> anyhow::Result<()> {
   load_env();
 
   let port = std::env::var("STORAGE_PORT")
-    .unwrap_or_else(|_| "3001".to_string());
+    .unwrap_or_else(|_| "8080".to_string());
 
   println!("╔══════════════════════════════════════════════════════╗");
   println!("║        RAXC 0G Storage API Server                   ║");
