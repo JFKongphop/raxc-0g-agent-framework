@@ -333,7 +333,7 @@ async fn main() -> anyhow::Result<()> {
   let mut agent_core = AgentCore::new(storage, compute);
   
   // Register tools
-  agent_core.tools.register(Box::new(RaxcAnalyzer::new(agent_core.memory.storage.clone(), agent_core.compute.clone())));
+  agent_core.tools.register(Box::new(RaxcAnalyzer::new(agent_core.memory.storage.clone().expect("storage required for api.rs"), agent_core.compute.clone())));
   agent_core.tools.register(Box::new(GasAnalyzerTool));
   agent_core.tools.register(Box::new(PatternDetectorTool));
   
