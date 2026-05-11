@@ -12,7 +12,7 @@ use futures::future::join_all;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
-use crate::{analyze, build_markdown, OgComputeClient, OgStorageClient, TOP_K};
+use crate::{analyze, analyze_remote, build_markdown, OgComputeClient, OgStorageClient, og_storage::RemoteOgStorageClient, TOP_K};
 
 // ─── Tool Signal (Structured Truth) ───────────────────────────────────────────
 
@@ -1634,12 +1634,17 @@ impl ConsensusEngine {
 
 /// Memory Layer - Persistent memory using 0G Storage
 pub struct MemoryLayer {
-  pub storage: OgStorageClient,
+  pub storage: Option<OgStorageClient>,
 }
 
 impl MemoryLayer {
   pub fn new(storage: OgStorageClient) -> Self {
-    Self { storage }
+    Self { storage: Some(storage) }
+  }
+
+  /// Create a MemoryLayer without local storage (for use with RemoteOgStorageClient).
+  pub fn remote() -> Self {
+    Self { storage: None }
   }
   
   /// Store analysis result to memory
@@ -2641,10 +2646,22 @@ impl AgentCore {
       compute,
     }
   }
+
+  /// Create AgentCore that uses remote api_0g_storage (no local download needed).
+  /// Register RaxcAnalyzerRemote as the tool instead of RaxcAnalyzer.
+  pub fn new_remote(compute: OgComputeClient) -> Self {
+    println!("[*] Initializing RAXC Multi-Agent Framework (remote storage mode)...");
+    Self {
+      tools: ToolRegistry::new(),
+      memory: MemoryLayer::remote(),
+      compute,
+    }
+  }
   
   /// Main analysis pipeline - returns complete AnalysisResult with markdown report
   pub async fn analyze(&self, contract: &str, contract_name: &str) -> Result<AnalysisResult> {
     println!("\n[*] Running RAXC Multi-Agent Framework Analysis...");
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     
     // Phase 1: Execute all tools
     println!("[*] Phase 1: Running tool registry...");
@@ -2652,6 +2669,7 @@ impl AgentCore {
     println!("[*] Raw signals: {}", raw_signals.len());
     
     // Phase 1.5: Signal Normalization (Step 9.5)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 1.5: Normalizing tool signals...");
     let tool_signals = SignalNormalizer::normalize(raw_signals.clone());
     println!("[*] Normalized signals: {} (filtered from {})", tool_signals.len(), raw_signals.len());
@@ -2783,15 +2801,18 @@ impl AgentCore {
     let agent_votes = self.create_agent_votes(&tool_signals);
     
     // Phase 3: Consensus decision
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 3: Running consensus engine...");
     let decision = ConsensusEngine::decide(agent_votes);
     
     // Phase 4: Store to memory
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4: Storing to memory layer...");
     let contract_hash = format!("{:x}", md5::compute(contract));
     self.memory.store_analysis(&contract_hash, &decision).await?;
     
     // Phase 4.5: Intelligence + Scoring Layer (Step 9.8)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4.5: Calculating risk intelligence score...");
     let exploit_similarity = 0.75; // From RAG (loaded exploits similarity - extensible)
     let intelligence_report = RiskScoringEngine::generate_report(
@@ -2805,6 +2826,7 @@ impl AgentCore {
     println!("    └─ Classification: {}", intelligence_report.final_classification);
     
     // Phase 4.75: Attack Simulation + Exploit Path Engine (Step 9.9)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4.75: Simulating attack execution path...");
     let attack_simulation = if decision.vulnerability_found {
       let vulnerability = decision.primary_vulnerability.as_deref().unwrap_or("Unknown");
@@ -2876,6 +2898,7 @@ impl AgentCore {
     };
     
     // Phase 4.8: Graph Construction Engine (Step 9.9)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4.8: Constructing deterministic attack graph...");
     let attack_graph = if decision.vulnerability_found {
       let vulnerability = decision.primary_vulnerability.as_deref().unwrap_or("Unknown");
@@ -2893,6 +2916,7 @@ impl AgentCore {
     };
     
     // Phase 4.85: Consistency Verification (Step 9.9)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4.85: Verifying simulation consistency...");
     let consistency_check = ConsistencyEngineVerifier::verify(
       &tool_signals,
@@ -2906,6 +2930,7 @@ impl AgentCore {
     println!("    └─ Consistency Score: {:.2}%", consistency_check.consistency_score * 100.0);
     
     // Phase 4.9: Final Decision Engine (Step 9.9 - SINGLE AUTHORITY)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4.9: Making FINAL DECISION (single authority)...");
     let final_decision = FinalDecisionEngine::decide(
       &attack_simulation.confidence_engine,
@@ -2918,6 +2943,7 @@ impl AgentCore {
     println!("    └─ Final Risk Score: {:.2}%", final_decision.final_risk_score * 100.0);
     
     // Phase 4.95: Attestation Engine (Step 9.9 - VERIFIABLE PROOF)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 4.95: Generating verifiable attestation...");
     let attestation = AttestationEngine::attest(
       &final_decision,
@@ -2930,10 +2956,12 @@ impl AgentCore {
     println!("    └─ Timestamp: {}", attestation.timestamp);
     
     // Phase 5: Generate LLM explanation (0G Compute)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 5: Generating LLM explanation (0G Compute)...");
     let explanation = self.generate_explanation(&decision, &tool_signals, contract).await?;
     
     // Phase 6: Generate markdown report (with intelligence metrics + attack simulation)
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 6: Generating markdown report...");
     let markdown = ReportEngine::to_markdown(&decision, &tool_signals, &raw_signals, &explanation, &intelligence_report, &attack_simulation, &attack_graph, &consistency_check, &final_decision, &attestation, contract_name);
     
@@ -3212,7 +3240,95 @@ impl Tool for RaxcAnalyzer {
   }
 }
 
-/// Agent with 0G-powered memory and compute
+// ─── RAXC Analyzer Remote Tool ────────────────────────────────────────────────
+
+/// Drop-in replacement for RaxcAnalyzer that queries api_0g_storage server (port 3001)
+/// instead of loading 777 exploits locally. Start api_0g_storage first:
+///   cargo run --bin api_0g_storage
+pub struct RaxcAnalyzerRemote {
+  http: Client,
+  storage: RemoteOgStorageClient,
+  compute: OgComputeClient,
+}
+
+impl RaxcAnalyzerRemote {
+  pub fn new(storage: RemoteOgStorageClient, compute: OgComputeClient) -> Self {
+    Self {
+      http: Client::new(),
+      storage,
+      compute,
+    }
+  }
+}
+
+#[async_trait]
+impl Tool for RaxcAnalyzerRemote {
+  async fn execute(&self, contract: &str) -> Result<ToolSignal> {
+    let analysis = analyze_remote(&self.http, &self.storage, &self.compute, contract).await?;
+
+    let lower = analysis.to_lowercase();
+
+    let vulnerability = if lower.contains("reentrancy") {
+      Some("Reentrancy".to_string())
+    } else if lower.contains("access control") {
+      Some("Access Control".to_string())
+    } else if lower.contains("flash loan") {
+      Some("Flash Loan Attack".to_string())
+    } else if lower.contains("oracle manipulation") {
+      Some("Oracle Manipulation".to_string())
+    } else if lower.contains("integer overflow") || lower.contains("integer underflow") {
+      Some("Integer Overflow/Underflow".to_string())
+    } else if lower.contains("front-running") || lower.contains("frontrun") {
+      Some("Front-Running".to_string())
+    } else {
+      None
+    };
+
+    let severity = if lower.contains("critical") {
+      Some("Critical".to_string())
+    } else if lower.contains("high") {
+      Some("High".to_string())
+    } else if lower.contains("medium") {
+      Some("Medium".to_string())
+    } else if lower.contains("low") {
+      Some("Low".to_string())
+    } else {
+      Some("Medium".to_string())
+    };
+
+    let confidence = if let Some(start) = lower.find("confidence") {
+      let substring = &lower[start..];
+      if let Some(num_start) = substring.find(|c: char| c.is_ascii_digit()) {
+        let num_str: String = substring[num_start..]
+          .chars()
+          .take_while(|c| c.is_ascii_digit() || *c == '.')
+          .collect();
+        num_str.parse::<f64>().unwrap_or(75.0) / 100.0
+      } else {
+        0.75
+      }
+    } else if vulnerability.is_some() {
+      0.85
+    } else {
+      0.50
+    };
+
+    Ok(ToolSignal {
+      id: "RaxcAnalyzerRemote#1".to_string(),
+      tool_name: "RaxcAnalyzerRemote".to_string(),
+      vulnerability,
+      severity,
+      confidence,
+      evidence: analysis,
+    })
+  }
+
+  fn name(&self) -> &str {
+    "RaxcAnalyzerRemote"
+  }
+}
+
+
 pub struct Agent {
   http: Client,
   pub storage: OgStorageClient,
