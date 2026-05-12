@@ -1,0 +1,28 @@
+# Fly.io configuration for RAXC 0G Storage API
+app = 'raxc-0g-agent-framework'
+primary_region = 'sin'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  OG_INDEXER_RPC = "https://indexer-storage-testnet-turbo.0g.ai"
+  STORAGE_PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false  # ← CRITICAL: Don't auto-stop
+  auto_start_machines = true
+  min_machines_running = 1    # ← Keep at least 1 machine always running
+  
+  [[http_service.checks]]
+    grace_period = "240s"      # Wait 4 min for exploit loading
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[vm]]
+  size = 'shared-cpu-1x'       # 256MB RAM (upgrade if needed)
+  memory = '1gb'               # 1GB RAM for 722 exploits in memory
