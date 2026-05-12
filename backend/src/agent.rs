@@ -2954,7 +2954,32 @@ impl AgentCore {
     println!("    ├─ Attestation Replay ID: {}", attestation.replay_id);
     println!("    ├─ Execution Trace Hash: {}", attestation.execution_trace_hash);
     println!("    └─ Timestamp: {}", attestation.timestamp);
-    
+
+    // Phase 4.97: Reflection — 0G Compute self-critique
+    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+    println!("[*] Phase 4.97: ReflectionTool — 0G Compute self-critique...");
+    let reflection_input = format!(
+      "Vulnerability: {} | Risk: {} | Confidence: {:.0}% | Exploit Status: {} | Tools agreed: {}",
+      decision.primary_vulnerability.as_deref().unwrap_or("None"),
+      decision.risk_level,
+      decision.confidence * 100.0,
+      attack_simulation.exploit_verdict.status,
+      tool_signals.len(),
+    );
+    let reflection_signal = crate::tools::ReflectionTool::new(
+      std::sync::Arc::new(self.compute.clone())
+    ).execute(&reflection_input).await;
+    match &reflection_signal {
+      Ok(sig) => {
+        let verdict = if sig.evidence.contains("CONFIRMED") { "CONFIRMED" }
+          else if sig.evidence.contains("REJECTED") { "REJECTED" }
+          else { "REDUCED" };
+        println!("    ├─ Verdict: {}", verdict);
+        println!("    └─ Refined Confidence: {:.0}%", sig.confidence * 100.0);
+      }
+      Err(e) => println!("    └─ Reflection skipped: {}", e),
+    }
+
     // Phase 5: Generate LLM explanation (0G Compute)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 5: Generating LLM explanation (0G Compute)...");
