@@ -35,7 +35,7 @@ pub use agent::{
 };
 pub use og_compute::OgComputeClient;
 pub use og_storage::{ExploitData, ExploitMetadata, LoadedExploit, OgStorageClient, RemoteOgStorageClient, RemoteExploitResult};
-pub use tools::{GasAnalyzerTool, PatternDetectorTool};
+pub use tools::{GasAnalyzerTool, PatternDetectorTool, FlashLoanTool, AccessControlTool, ReflectionTool, MemoryTool};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ pub fn build_og_compute() -> Result<OgComputeClient> {
   }
 }
 
-// ─── Embedding (OpenAI or hash-based demo) ────────────────────────────────────
+// ─── Embedding (0G Compute LLM → OpenAI fallback → hash demo) ────────────────
 
 #[derive(serde::Serialize)]
 struct EmbedRequest {
@@ -95,7 +95,8 @@ struct EmbedData {
   embedding: Vec<f64>,
 }
 
-/// Embed text using OpenAI API or hash-based demo
+/// Embed text — demo: OpenAI → hash-based fallback
+/// Production: swap to embed_0g_compute() when exploit DB is re-indexed with 0G vectors
 pub async fn embed(client: &Client, text: &str) -> Result<Vec<f64>> {
   let use_openai = std::env::var("USE_OPENAI_EMBEDDING")
     .map(|v| v == "true" || v == "1")
@@ -108,7 +109,73 @@ pub async fn embed(client: &Client, text: &str) -> Result<Vec<f64>> {
   }
 }
 
-/// OpenAI API embedding
+/// 0G Compute LLM-based embedding (production path — requires exploit DB re-indexed with these vectors).
+/// Prompts the chat LLM to extract 32 semantic vulnerability concepts,
+/// then deterministically hashes them into a 1536-dim vector.
+/// Uses the same OG_COMPUTE_ENDPOINT + OG_COMPUTE_API_KEY already configured.
+#[allow(dead_code)]
+async fn embed_0g_compute(client: &Client, text: &str) -> Result<Vec<f64>> {
+  use serde_json::Value;
+
+  let endpoint = std::env::var("OG_COMPUTE_ENDPOINT")
+    .context("OG_COMPUTE_ENDPOINT not set")?;
+  let model = std::env::var("OG_COMPUTE_MODEL")
+    .unwrap_or_else(|_| "qwen/qwen-2.5-7b-instruct".to_string());
+
+  let snippet = text.chars().take(3000).collect::<String>();
+  let prompt = format!(
+    "Extract exactly 32 semantic security concepts from this smart contract code.\n\
+     Return ONLY a JSON array of 32 short strings (1-3 words each). No explanation.\n\
+     Example: [\"reentrancy\", \"access control\", \"flash loan\", ...]\n\n\
+     Contract:\n{}", snippet
+  );
+
+  #[derive(serde::Serialize)]
+  struct Msg { role: String, content: String }
+  #[derive(serde::Serialize)]
+  struct Req { model: String, messages: Vec<Msg>, max_tokens: u32 }
+
+  let req = Req {
+    model: model.clone(),
+    messages: vec![
+      Msg { role: "system".to_string(), content: "You are a smart contract security expert. Output only valid JSON.".to_string() },
+      Msg { role: "user".to_string(), content: prompt },
+    ],
+    max_tokens: 256,
+  };
+
+  let mut http_req = client.post(&endpoint).json(&req);
+  if let Ok(api_key) = std::env::var("OG_COMPUTE_API_KEY") {
+    http_req = http_req.bearer_auth(api_key);
+  }
+
+  let resp = http_req.send().await.context("0G Compute embedding request failed")?;
+  if !resp.status().is_success() {
+    let status = resp.status();
+    let body = resp.text().await.unwrap_or_default();
+    anyhow::bail!("0G Compute error {}: {}", status, body);
+  }
+
+  let body: Value = resp.json().await.context("Failed to parse 0G Compute response")?;
+  let content = body["choices"][0]["message"]["content"]
+    .as_str()
+    .unwrap_or("")
+    .trim()
+    .to_string();
+
+  // Parse JSON array of concept strings from LLM response
+  let start = content.find('[').unwrap_or(0);
+  let end = content.rfind(']').map(|i| i + 1).unwrap_or(content.len());
+  let json_slice = &content[start..end];
+
+  let concepts: Vec<String> = serde_json::from_str(json_slice)
+    .unwrap_or_else(|_| vec![content.clone()]);
+
+  // Hash concepts deterministically into a 1536-dim vector
+  Ok(embed_hash_demo(&concepts.join(" "), 1536))
+}
+
+/// OpenAI API embedding (fallback when 0G Compute is unavailable)
 async fn embed_openai(client: &Client, text: &str) -> Result<Vec<f64>> {
   let api_key = std::env::var("OPENAI_API_KEY")
     .context("OPENAI_API_KEY not set — required for USE_OPENAI_EMBEDDING=true")?;
