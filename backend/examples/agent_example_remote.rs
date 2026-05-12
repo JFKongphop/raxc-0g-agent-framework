@@ -18,9 +18,11 @@ Architecture change vs agent_example.rs:
 */
 
 use anyhow::Result;
+use std::sync::Arc;
 use raxc::{
   build_og_compute, load_env,
   AgentCore, RaxcAnalyzerRemote, GasAnalyzerTool, PatternDetectorTool,
+  FlashLoanTool, AccessControlTool, ReflectionTool,
   RemoteOgStorageClient,
 };
 
@@ -29,7 +31,8 @@ async fn main() -> Result<()> {
   // Load environment variables
   load_env();
 
-  // Enable OpenAI embeddings
+  // Demo: use OpenAI embeddings (matches the vector space of the indexed 722 exploits).
+  // Production: re-index exploits with 0G Compute vectors, then switch to embed_0g_compute().
   std::env::set_var("USE_OPENAI_EMBEDDING", "true");
 
   println!("╔══════════════════════════════════════════════════════════════════════════╗");
@@ -37,61 +40,99 @@ async fn main() -> Result<()> {
   println!("║    Deterministic Exploit Execution + Verification Framework             ║");
   println!("╚══════════════════════════════════════════════════════════════════════════╝\n");
 
-  // ─── Connect to remote storage API (no local download) ───────────────────────
-  println!("[*] Connecting to api_0g_storage server (http://localhost:3001)...");
-  let remote_storage = RemoteOgStorageClient::local();
+  // ─── Connect to remote storage API (fly.dev deployed server) ──────────────
+  let server_url = "https://raxc-0g-agent-framework-j43hng.fly.dev";
+  println!("[*] Connecting to api_0g_storage server ({})...", server_url);
+  let remote_storage = RemoteOgStorageClient::new(server_url);
 
   let loaded = remote_storage.health().await
     .map_err(|e| anyhow::anyhow!(
       "api_0g_storage server not reachable: {}\n\
-      → Start it first: cargo run --bin api_0g_storage", e
+      → URL: {}", e, server_url
     ))?;
 
   println!("[✓] Storage server online — {} exploits loaded\n", loaded);
 
   // ─── Initialize 0G Compute client ────────────────────────────────────────────
-  let compute = build_og_compute()?;
+  let compute = Arc::new(build_og_compute()?);
 
   // ─── Create AgentCore (remote mode — no local storage download) ──────────────
-  let mut core = AgentCore::new_remote(compute.clone());
+  let mut core = AgentCore::new_remote((*compute).clone());
 
   // ─── Register tools ──────────────────────────────────────────────────────────
   println!("[*] Registering tools to ToolRegistry...");
-  core.tools.register(Box::new(RaxcAnalyzerRemote::new(remote_storage, compute)));
+  core.tools.register(Box::new(RaxcAnalyzerRemote::new(remote_storage, (*compute).clone())));
   core.tools.register(Box::new(GasAnalyzerTool::new()));
   core.tools.register(Box::new(PatternDetectorTool::new()));
+  core.tools.register(Box::new(FlashLoanTool::new()));
+  core.tools.register(Box::new(AccessControlTool::new()));
+  core.tools.register(Box::new(ReflectionTool::new(compute.clone())));
   println!("[✓] Registered {} tools\n", core.tools.tool_count());
 
-  // ─── VulnerableVault contract ─────────────────────────────────────────────────
+  // ─── DeFiVault — triggers all 6 tools ────────────────────────────────────────
+  // ✅ PatternDetectorTool  : reentrancy (.call before state update)
+  // ✅ FlashLoanTool        : getReserves() spot price oracle + flashLoan callback
+  // ✅ AccessControlTool    : withdraw() and initialize() missing onlyOwner
+  // ✅ GasAnalyzerTool      : array.length in loop, string memory param
+  // ✅ RaxcAnalyzerRemote   : RAG match against 722 real exploits
+  // ✅ ReflectionTool       : 0G Compute self-critique of consensus result
   let contract = r#"
 pragma solidity ^0.7.0;
 
-contract VulnerableVault {
+contract DeFiVault {
     mapping(address => uint256) public balances;
+    address[] public depositors;
+    address public owner;
+    bool private initialized;
+
+    // ❌ AccessControl: no initializer guard, callable multiple times
+    function initialize(address _owner) external {
+        owner = _owner;
+    }
 
     function deposit() external payable {
         balances[msg.sender] += msg.value;
+        depositors.push(msg.sender);
     }
 
+    // ❌ Reentrancy: external call before state update
+    // ❌ AccessControl: no onlyOwner guard on withdraw
     function withdraw() external {
         uint256 amount = balances[msg.sender];
         require(amount > 0, "Nothing to withdraw");
-        // VULNERABILITY: external call before state update — reentrancy risk
         (bool ok, ) = msg.sender.call{value: amount}("");
         require(ok, "Transfer failed");
-        balances[msg.sender] = 0;  // state updated AFTER the call
+        balances[msg.sender] = 0;
     }
 
+    // ❌ FlashLoan: spot price oracle via getReserves — manipulable in one tx
     function getPrice() external view returns (uint256) {
-        // single-block spot price — manipulable via flash loan
-        return address(this).balance;
+        (uint112 reserve0, uint112 reserve1,) = IUniswapPair(address(this)).getReserves();
+        return uint256(reserve0) * 1e18 / uint256(reserve1);
     }
+
+    // ❌ FlashLoan: flash loan callback with no reentrancy guard
+    function executeOperation(uint256 amount) external {
+        uint256 price = this.getPrice();
+        balances[msg.sender] += price * amount;
+    }
+
+    // ❌ Gas: array.length in loop, string memory param
+    function distributeRewards(string memory label) external {
+        for (uint i = 0; i < depositors.length; i++) {
+            balances[depositors[i]] += 100;
+        }
+    }
+}
+
+interface IUniswapPair {
+    function getReserves() external view returns (uint112, uint112, uint32);
 }
   "#;
 
   // ─── Run analysis ─────────────────────────────────────────────────────────────
   println!("\n[*] Starting Step 9.9 analysis with full verification pipeline...\n");
-  let result = core.analyze(contract, "VulnerableVault").await?;
+  let result = core.analyze(contract, "DeFiVault").await?;
 
   // Save markdown report
   std::fs::write(&result.filename, &result.markdown)?;
