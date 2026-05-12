@@ -88,6 +88,10 @@ async fn health(State(state): State<StorageState>) -> impl IntoResponse {
   }))
 }
 
+async fn home() -> impl IntoResponse {
+  Json(json!({ "status": "ok" }))
+} 
+
 async fn query(
   State(state): State<StorageState>,
   Json(req): Json<QueryRequest>,
@@ -165,6 +169,7 @@ async fn main() -> anyhow::Result<()> {
     .allow_headers(Any);
 
   let app = Router::new()
+    .route("/", get(home))
     .route("/health", get(health))
     .route("/query", post(query))
     .layer(cors)

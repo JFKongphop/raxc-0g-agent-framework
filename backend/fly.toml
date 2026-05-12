@@ -1,5 +1,5 @@
 # Fly.io configuration for RAXC 0G Storage API
-app = 'raxc-0g-agent-framework'
+app = 'raxc-0g-agent-framework-j43hng'
 primary_region = 'sin'
 
 [build]
