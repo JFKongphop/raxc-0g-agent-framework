@@ -25,6 +25,13 @@ use raxc::{
   FlashLoanTool, AccessControlTool, ReflectionTool, MemoryTool,
   RemoteOgStorageClient, OgStorageClient,
 };
+use ethers::{
+  abi::{self, Token},
+  middleware::SignerMiddleware,
+  providers::{Http, Middleware, Provider},
+  signers::{LocalWallet, Signer},
+  types::{Address, Bytes, TransactionRequest, U256},
+};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -229,15 +236,6 @@ interface IUniswapPair {
 ///   PRIVATE_KEY             — agent wallet private key (0x...)
 ///   OG_RPC_URL              — 0G Galileo RPC (default: https://evmrpc-testnet.0g.ai)
 async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) -> anyhow::Result<()> {
-  use ethers::{
-    abi::{self, Token},
-    middleware::SignerMiddleware,
-    providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer},
-    types::{Address, Bytes, TransactionRequest, U256},
-  };
-  use std::sync::Arc;
-
   let contract_addr = std::env::var("RAXC_AGENT_NFT_ADDRESS")
     .map_err(|_| anyhow::anyhow!("RAXC_AGENT_NFT_ADDRESS not set"))?;
   let token_id: u64 = std::env::var("RAXC_AGENT_TOKEN_ID")
