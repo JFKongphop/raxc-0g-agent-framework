@@ -269,7 +269,7 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let mut data_hash = [0u8; 32];
   data_hash.copy_from_slice(&hash_bytes);
 
-  println!("\n[*] ERC-7857: Updating agent iNFT on 0G Galileo...");
+  println!("\n[ERC-7857]       Updating agent intelligence on 0G Galileo...");
   println!("    Contract: {}", contract_addr);
   println!("    Token ID: {}", token_id);
   println!("    Description: {}", description);
@@ -315,9 +315,9 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let pending = client.send_transaction(tx, None).await
     .map_err(|e| anyhow::anyhow!("send_transaction failed: {}", e))?;
 
-  println!("[✓] ERC-7857 update() confirmed on 0G Galileo (chain 16602)");
+  println!("[ERC-7857]       Intelligence updated on-chain (chain 16602)");
   println!("    TX: 0x{:x}", pending.tx_hash());
-  println!("    Agent intelligence updated: audit trace stored on-chain");
+  println!("    Audit trace committed to 0G Galileo");
 
   Ok(())
 }

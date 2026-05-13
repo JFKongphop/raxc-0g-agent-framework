@@ -324,14 +324,14 @@ pub async fn analyze(
   compute: &OgComputeClient,
   contract: &str,
 ) -> Result<String> {
-  println!("[*] Embedding contract code...");
+  println!("[RaxcAnalyzer]   Embedding contract code...");
   let query_vec = embed(http, contract).await?;
 
-  println!("[*] Querying pre-loaded exploits...");
+  println!("[RaxcAnalyzer]   Querying 722-exploit RAG database...");
   let top_matches = storage.query(&query_vec, TOP_K);
 
   let top_score = top_matches.first().map(|(s, _)| *s).unwrap_or(0.0);
-  println!("[*] Top similarity score: {:.3}", top_score);
+  println!("[RaxcAnalyzer]   Top similarity: {:.3}", top_score);
 
   if top_score < SIM_THRESHOLD {
     println!("[!] Similarity {:.3} below threshold {} — skipping 0G Compute, contract appears safe.", top_score, SIM_THRESHOLD);
@@ -341,10 +341,10 @@ pub async fn analyze(
     ));
   }
 
-  println!("[*] Building RAG context...");
+  println!("[RaxcAnalyzer]   Building RAG context...");
   let context = build_rag_context(&top_matches);
 
-  println!("[*] Sending to 0G Compute for analysis...");
+  println!("[0G Compute]     Sending for analysis...");
   let prompt = format!(
     r#"You are a smart contract security expert specializing in DeFi vulnerabilities.
 
@@ -403,14 +403,14 @@ pub async fn analyze_remote(
   compute: &OgComputeClient,
   contract: &str,
 ) -> Result<String> {
-  println!("[*] Embedding contract code...");
+  println!("[RaxcAnalyzer]   Embedding contract code...");
   let query_vec = embed(http, contract).await?;
 
-  println!("[*] Querying remote storage API (port 3001)...");
+  println!("[RaxcAnalyzer]   Querying 722-exploit RAG database...");
   let top_matches = storage.query(&query_vec, TOP_K).await?;
 
   let top_score = top_matches.first().map(|e| e.score).unwrap_or(0.0);
-  println!("[*] Top similarity score: {:.3}", top_score);
+  println!("[RaxcAnalyzer]   Top similarity: {:.3}", top_score);
 
   if top_score < SIM_THRESHOLD {
     println!("[!] Similarity {:.3} below threshold {} — skipping 0G Compute, contract appears safe.", top_score, SIM_THRESHOLD);
@@ -420,10 +420,10 @@ pub async fn analyze_remote(
     ));
   }
 
-  println!("[*] Building RAG context...");
+  println!("[RaxcAnalyzer]   Building RAG context...");
   let context = build_rag_context_remote(&top_matches);
 
-  println!("[*] Sending to 0G Compute for analysis...");
+  println!("[0G Compute]     Sending for analysis...");
   let prompt = format!(
     r#"You are a smart contract security expert specializing in DeFi vulnerabilities.
 

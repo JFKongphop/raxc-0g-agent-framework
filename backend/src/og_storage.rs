@@ -320,7 +320,7 @@ impl OgStorageClient {
 
             match hash {
               Some(h) => {
-                println!("    [0G Storage] Uploaded '{}' → root hash: {}", key, h);
+                println!("    [0G Storage]     Uploaded '{}' → root hash: {}", key, h);
                 let cache_dir = raxc_cache_dir();
                 let _ = std::fs::write(
                   format!("{}/roothash_{}.content", cache_dir, h.trim_start_matches("0x")),
@@ -330,7 +330,7 @@ impl OgStorageClient {
               }
               None => {
                 let fallback = format!("0x{}", sha256_hex(value));
-                println!("    [0G Storage] Hash not found in output, using SHA256 fallback: {}", fallback);
+                println!("    [0G Storage]     Hash not found in output, using SHA256 fallback: {}", fallback);
                 fallback
               }
             }
@@ -346,20 +346,20 @@ impl OgStorageClient {
               .and_then(|line| hex_re2.captures(line).map(|c| format!("0x{}", &c[1])))
               .or_else(|| hex_re2.captures_iter(&stderr).map(|c| format!("0x{}", &c[1])).last());
             if let Some(ref h) = recovered {
-              println!("    [0G Storage] kv-write partial — root computed: {}", h);
+              println!("    [0G Storage]     kv-write partial — root computed: {}", h);
               let cache_dir = raxc_cache_dir();
               let _ = std::fs::write(
                 format!("{}/roothash_{}.content", cache_dir, h.trim_start_matches("0x")),
                 value,
               );
             } else {
-              println!("    [0G Storage] Upload failed (no root hash found in output)");
+              println!("    [0G Storage]     Upload failed (no root hash found in output)");
             }
             persist_local(&safe_key, value)?;
             recovered.unwrap_or_else(|| format!("0x{}", sha256_hex(value)))
           }
           Err(e) => {
-            println!("    [0G Storage] 0g-cli not available: {}", e);
+            println!("    [0G Storage]     0g-cli not available: {}", e);
             persist_local(&safe_key, value)?;
             format!("0x{}", sha256_hex(value))
           }
@@ -367,7 +367,7 @@ impl OgStorageClient {
       }
       Err(_) => {
         // No private key — persist locally only
-        println!("    [0G Storage] No OG_STORAGE_PRIVATE_KEY/PRIVATE_KEY set — persisting locally");
+        println!("    [0G Storage]     No OG_STORAGE_PRIVATE_KEY/PRIVATE_KEY set — persisting locally");
         persist_local(&safe_key, value)?;
         format!("0x{}", sha256_hex(value))
       }
@@ -451,7 +451,7 @@ impl OgStorageClient {
     let indexer_rpc = std::env::var("OG_INDEXER_RPC")
       .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
 
-    println!("[*] MemoryTool: Reading past audits from chain (token #{})...", token_id);
+    println!("[MemoryTool]     Reading past audits from chain (token #{})...", token_id);
 
     // intelligenceHistory = all past snapshots (raw bytes32 dataHash per update)
     // intelligentDatasOf  = current snapshot (not yet in history)
@@ -480,7 +480,7 @@ impl OgStorageClient {
       .to_block(ethers::types::BlockNumber::Latest);
 
     let logs = provider.get_logs(&filter).await.unwrap_or_default();
-    println!("[*] MemoryTool: Found {} Updated events on chain", logs.len());
+    println!("[MemoryTool]     Found {} Updated events on chain", logs.len());
 
     // ABI-decode log.data to extract the exact bytes32 dataHash from newDatas.
     // Updated(uint256 indexed tokenId, IntelligentData[] oldDatas, IntelligentData[] newDatas)
@@ -514,7 +514,7 @@ impl OgStorageClient {
         }
       }
     }
-    println!("[*] MemoryTool: Extracted {} unique 0G root hashes from events", root_hashes.len());
+    println!("[MemoryTool]     Extracted {} unique 0G root hashes from events", root_hashes.len());
 
     // Persistent cache dir — survives reboots unlike /tmp
     let cache_dir = dirs_home().unwrap_or_else(|| "/tmp".into()) + "/.raxc/memory";
@@ -524,7 +524,7 @@ impl OgStorageClient {
     let mut raw_jsons: Vec<serde_json::Value> = Vec::new();
 
     for root_hash in &root_hashes {
-        println!("[*] MemoryTool: Processing hash (root: {}...)", &root_hash[..10]);
+        println!("[MemoryTool]     Processing hash (root: {}...)", &root_hash[..10]);
 
         // Always download from 0G Storage network — decentralized memory, any agent on any machine can read
         let cache_key = root_hash.trim_start_matches("0x");
@@ -725,7 +725,7 @@ impl RemoteOgStorageClient {
     let data: RemoteQueryResponse = resp.json().await.context("Failed to parse storage API response")?;
 
     println!(
-      "[0G Storage] Queried {} exploits in {}ms — {} matches found",
+      "[0G Storage]     Queried {} exploits in {}ms — {} matches found",
       data.total_searched, data.query_time_ms, data.results.len()
     );
 
