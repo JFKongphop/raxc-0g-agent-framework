@@ -1688,6 +1688,9 @@ pub struct AnalysisResult {
   pub attestation: AttestationProof,             // Step 9.9: Verifiable Attestation
   pub markdown: String,
   pub filename: String,
+  /// 0G Storage root hash from store_memory() — used for ERC-7857 update() call.
+  /// Empty string if storage upload was skipped or failed.
+  pub storage_root_hash: String,
 }
 
 // ─── Report Engine (Markdown Generator) ──────────────────────────────────────
@@ -2651,9 +2654,11 @@ impl AgentCore {
   /// Register RaxcAnalyzerRemote as the tool instead of RaxcAnalyzer.
   pub fn new_remote(compute: OgComputeClient) -> Self {
     println!("[*] Initializing RAXC Multi-Agent Framework (remote storage mode)...");
+    // Use new_empty() — no exploit DB download, but put() / load_from_chain() still work.
+    // This enables Phase 0 (chain read) and Phase 7 (0G write) even in remote mode.
     Self {
       tools: ToolRegistry::new(),
-      memory: MemoryLayer::remote(),
+      memory: MemoryLayer::new(OgStorageClient::new_empty()),
       compute,
     }
   }
@@ -2662,7 +2667,35 @@ impl AgentCore {
   pub async fn analyze(&self, contract: &str, contract_name: &str) -> Result<AnalysisResult> {
     println!("\n[*] Running RAXC Multi-Agent Framework Analysis...");
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    
+
+    // Phase 0: Load past audit context from on-chain ERC-7857 NFT — Stage 2 long-context memory.
+    // Stage 1 = 722 static exploits (loaded at server startup, cosine similarity).
+    // Stage 2 = agent's own past audit reports, uploaded to 0G Storage, indexed on-chain.
+    // These stay separate: Stage 1 drives tool signals, Stage 2 drives LLM context.
+    let token_id: u64 = std::env::var("RAXC_AGENT_TOKEN_ID")
+      .unwrap_or_else(|_| "0".to_string())
+      .parse()
+      .unwrap_or(0);
+    let chain_memory = if let Some(ref storage) = self.memory.storage {
+      match storage.load_from_chain(token_id).await {
+        Ok(past) if !past.is_empty() => {
+          println!("[✓] Phase 0: Loaded {} past audit(s) from 0G Storage via chain index", past.len());
+          past
+        }
+        Ok(_) => {
+          println!("[*] Phase 0: No past audits on chain yet (first run)");
+          vec![]
+        }
+        Err(e) => {
+          println!("[!] Phase 0: Chain memory skipped — {}", e);
+          vec![]
+        }
+      }
+    } else {
+      println!("[*] Phase 0: Chain memory skipped (remote mode)");
+      vec![]
+    };
+
     // Phase 1: Execute all tools
     println!("[*] Phase 1: Running tool registry...");
     let raw_signals = self.tools.execute_all(contract).await;
@@ -2793,6 +2826,7 @@ impl AgentCore {
         attestation,
         markdown,
         filename,
+        storage_root_hash: String::new(),
       });
     }
     
@@ -2983,7 +3017,7 @@ impl AgentCore {
     // Phase 5: Generate LLM explanation (0G Compute)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     println!("[*] Phase 5: Generating LLM explanation (0G Compute)...");
-    let explanation = self.generate_explanation(&decision, &tool_signals, contract).await?;
+    let explanation = self.generate_explanation(&decision, &tool_signals, contract, &chain_memory).await?;
     
     // Phase 6: Generate markdown report (with intelligence metrics + attack simulation)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
@@ -2994,7 +3028,25 @@ impl AgentCore {
     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
     let vuln = decision.primary_vulnerability.as_deref().unwrap_or("Unknown");
     let filename = format!("RAXC_{}_{}_{}_{:.0}pct.md", contract_name, vuln, timestamp, decision.confidence * 100.0);
-    
+
+    // Phase 7: Store to 0G Storage — write JSON summary, get root hash for ERC-7857
+    // Store compact JSON (not full markdown) so Phase 0 can parse it back on next run.
+    let storage_root_hash = if let Some(ref storage) = self.memory.storage {
+      println!("[*] Phase 7: Storing analysis to 0G Storage...");
+      let summary_json = serde_json::json!({
+        "vulnerability_type": decision.primary_vulnerability.as_deref().unwrap_or("Unknown"),
+        "risk_level": decision.risk_level,
+        "confidence": (decision.confidence * 100.0) as u64,
+        "report": filename,
+        "contract": contract_name,
+      }).to_string();
+      let root = storage.put(&format!("analysis:{}", filename), &summary_json).await.unwrap_or_default();
+      println!("[*] 0G Storage root hash: {}", root);
+      root
+    } else {
+      String::new()
+    };
+
     Ok(AnalysisResult {
       decision,
       signals: tool_signals,
@@ -3007,11 +3059,12 @@ impl AgentCore {
       attestation,
       markdown,
       filename,
+      storage_root_hash,
     })
   }
   
   /// Generate LLM explanation using 0G Compute (Step 9.5: HARD CONSTRAINTS)
-  async fn generate_explanation(&self, decision: &DecisionResult, signals: &[ToolSignal], contract: &str) -> Result<String> {
+  async fn generate_explanation(&self, decision: &DecisionResult, signals: &[ToolSignal], contract: &str, chain_memory: &[String]) -> Result<String> {
     let vuln = decision.primary_vulnerability.as_deref().unwrap_or("None");
     let conf = SignalNormalizer::lock_confidence(decision.confidence) * 100.0;
     
@@ -3022,6 +3075,16 @@ impl AgentCore {
         s.vulnerability.as_deref().unwrap_or("None")))
       .collect::<Vec<_>>()
       .join(", ");
+
+    // Inject chain memory: past audits retrieved from 0G Storage via on-chain ERC-7857 index
+    let memory_context = if chain_memory.is_empty() {
+      String::new()
+    } else {
+      format!(
+        "\n\n🧠 LONG-CONTEXT MEMORY (retrieved from 0G Storage via on-chain NFT index):\n{}",
+        chain_memory.join("\n")
+      )
+    };
     
     let prompt = format!(
       "🔒 HARD CONSTRAINTS (MANDATORY):\n\
@@ -3036,15 +3099,17 @@ impl AgentCore {
       - Severity: {} (locked by framework)\n\
       - Confidence: {:.1}% (locked by consensus)\n\
       - Tool Signals: {}\n\n\
-      📝 CONTRACT CONTEXT:\n{}\n\n\
+      📝 CONTRACT CONTEXT:\n{}{}\n\n\
       ✅ REQUIRED OUTPUT (2-3 sentences ONLY):\n\
       Explain WHY this specific vulnerability exists in the code and its potential impact. \
+      If past audits are provided, note whether this matches a previously seen pattern. \
       No additional findings. No new analysis. Pure explanation.",
       vuln,
       decision.risk_level,
       conf,
       signals_summary,
-      contract.chars().take(400).collect::<String>()
+      contract.chars().take(400).collect::<String>(),
+      memory_context,
     );
     
     match self.compute.infer(&prompt).await {
@@ -3653,16 +3718,17 @@ Be critical and thorough."#,
     }
   }
 
-  /// Store analysis result to 0G Storage for persistent memory
-  async fn store_memory(&self, output: &AgentOutput) -> Result<()> {
+  /// Store analysis result to 0G Storage for persistent memory.
+  /// Returns the 0G Storage root hash for use in ERC-7857 update().
+  async fn store_memory(&self, output: &AgentOutput) -> Result<String> {
     let key = format!("analysis:{}", output.filename);
     let serialized = serde_json::to_string(output)?;
     
     println!("[*] Storing analysis to 0G Storage (key: {})...", key);
-    self.storage.put(&key, &serialized).await?;
-    println!("[✓] Analysis stored successfully");
+    let root_hash = self.storage.put(&key, &serialized).await?;
+    println!("[✓] Analysis stored → root hash: {}", root_hash);
     
-    Ok(())
+    Ok(root_hash)
   }
 
   /// Load similar past analyses from 0G Storage
@@ -3988,10 +4054,13 @@ OUTPUT FORMAT:
     };
 
     // STEP 9: Store to 0G Storage (persistent memory)
-    if let Err(e) = self.store_memory(&output).await {
-      eprintln!("[!] Warning: Failed to store analysis to 0G Storage: {}", e);
-      // Continue anyway - storage failure shouldn't block the analysis result
-    }
+    let _storage_root_hash = match self.store_memory(&output).await {
+      Ok(hash) => hash,
+      Err(e) => {
+        eprintln!("[!] Warning: Failed to store analysis to 0G Storage: {}", e);
+        String::new()
+      }
+    };
 
     Ok(output)
   }
