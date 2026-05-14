@@ -32,6 +32,7 @@ export function MemorySection() {
     fetchAuditTasks().then(setAudits).finally(() => setLoading(false));
   }, []);
 
+  // audits contains every on-chain entry (no slice cap)
   const total = audits.length;
 
   return (

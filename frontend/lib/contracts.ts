@@ -147,7 +147,7 @@ export async function fetchAuditTasks(): Promise<OnChainAudit[]> {
       };
     });
 
-    return tasks.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime()).slice(0, 4);
+    return tasks.sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime());
   } catch {
     return [];
   }
