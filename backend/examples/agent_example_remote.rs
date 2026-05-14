@@ -24,6 +24,7 @@ use raxc::{
   AgentCore, RaxcAnalyzerRemote, GasAnalyzerTool, PatternDetectorTool,
   FlashLoanTool, AccessControlTool, ReflectionTool, MemoryTool,
   RemoteOgStorageClient, OgStorageClient,
+  create_audit_task, finalize_audit_task,
 };
 use ethers::{
   abi::{self, Token},
@@ -167,6 +168,20 @@ interface IUniswapPair {
     (default_contract.to_string(), "DeFiVault".to_string())
   };
 
+  // ─── ERC-8183: Create audit task on-chain (before analysis) ────────────────────
+  let task_id_8183: Option<u64> = match create_audit_task(&contract_name).await {
+    Ok(id) => {
+      println!("\n\x1b[35m[ERC-8183]       Audit task created on 0G Galileo\x1b[0m");
+      println!("\x1b[2m    Task ID:     #{}\x1b[0m", id);
+      Some(id)
+    }
+    Err(e) => {
+      println!("\n\x1b[2m[ERC-8183] Task creation skipped: {}\x1b[0m", e);
+      println!("\x1b[2m    → Set RAXC_AUDIT_TASK_8183_ADDRESS and PRIVATE_KEY to enable\x1b[0m");
+      None
+    }
+  };
+
   // ─── Run analysis ─────────────────────────────────────────────────────────────
   println!("\n\x1b[33m[*]\x1b[0m Starting Step 9.9 analysis with full verification pipeline...\n");
   let result = core.analyze(&contract_code, &contract_name).await?;
@@ -242,9 +257,16 @@ interface IUniswapPair {
   // ─── ERC-7857: Record audit result on-chain (0G Galileo) ─────────────────────
   // After the analysis, the root hash from 0G Storage is used to update the
   // agent's iNFT intelligence pointer on-chain via update(tokenId, IntelligentData[]).
-  if let Err(e) = update_agent_nft(&result, "DeFiVault").await {
+  if let Err(e) = update_agent_nft(&result, &contract_name).await {
     println!("\n\x1b[31m[!] ERC-7857 update skipped: {}\x1b[0m", e);
     println!("\x1b[2m    → Set RAXC_AGENT_NFT_ADDRESS, RAXC_AGENT_TOKEN_ID, PRIVATE_KEY to enable\x1b[0m");
+  }
+
+  // ─── ERC-8183: Finalize audit task with proof ─────────────────────────────────
+  if let Some(task_id) = task_id_8183 {
+    if let Err(e) = finalize_audit_task(task_id, &result, &contract_name).await {
+      println!("\n\x1b[31m[!] ERC-8183 finalize skipped: {}\x1b[0m", e);
+    }
   }
 
   Ok(())
@@ -359,3 +381,6 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
 
   Ok(())
 }
+
+// ERC-8183 functions live in raxc::erc8183 (src/erc8183.rs)
+// imported above via: use raxc::{create_audit_task, finalize_audit_task}

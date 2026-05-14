@@ -18,6 +18,7 @@ mod agent;
 mod og_compute;
 pub mod og_storage;
 pub mod tools;
+pub mod erc8183;
 
 pub use agent::{
   Agent, AgentConfig, AgentOutput, Tool, RaxcAnalyzer, RaxcAnalyzerRemote, ToolSignal, DecisionResult,
@@ -36,6 +37,7 @@ pub use agent::{
 pub use og_compute::OgComputeClient;
 pub use og_storage::{ExploitData, ExploitMetadata, LoadedExploit, OgStorageClient, RemoteOgStorageClient, RemoteExploitResult};
 pub use tools::{GasAnalyzerTool, PatternDetectorTool, FlashLoanTool, AccessControlTool, ReflectionTool, MemoryTool};
+pub use erc8183::{create_audit_task, finalize_audit_task, hex_to_bytes32};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
