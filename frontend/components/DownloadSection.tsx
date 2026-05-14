@@ -1,24 +1,24 @@
 const PLATFORMS = [
   {
-    os: 'macOS',
-    sub: 'Apple Silicon · Intel x86_64',
-    cmd: 'brew install raxclaw',
-    alt: 'cargo install raxclaw',
-    icon: '🍎',
+    os: 'Prerequisites',
+    sub: 'Node.js 18+ · Rust · pnpm',
+    cmd: 'git clone https://github.com/JFKongphop/raxc-0g-agent-framework',
+    alt: 'cd raxc-0g-agent-framework',
+    icon: '📦',
   },
   {
-    os: 'Linux',
-    sub: 'x86_64 · ARM64 · MUSL',
-    cmd: 'cargo install raxclaw',
-    alt: 'curl -fsSL https://raxclaw.sh | sh',
-    icon: '🐧',
+    os: 'Build',
+    sub: 'JS CLI + Rust binary · one-time',
+    cmd: 'pnpm install && pnpm build:all',
+    alt: 'builds dist/raxclaw + prebuilt Rust binary',
+    icon: '⚙️',
   },
   {
-    os: 'Windows',
-    sub: 'x86_64 MSVC',
-    cmd: 'cargo install raxclaw',
-    alt: 'winget install raxclaw',
-    icon: '⊞',
+    os: 'Run',
+    sub: 'no .env setup needed',
+    cmd: './dist/raxclaw run',
+    alt: './dist/raxclaw run --file MyContract.sol',
+    icon: '🚀',
   },
 ];
 
@@ -146,10 +146,12 @@ export function DownloadSection() {
             Quick Start
           </div>
           {[
-            { prompt: '$ ', code: 'raxclaw analyze --contract MyContract.sol', color: 'var(--cyan)' },
-            { prompt: '$ ', code: 'raxclaw analyze --contract MyContract.sol --store 0g', color: 'var(--cyan)' },
-            { prompt: '$ ', code: 'raxclaw replay --id 0x55EA9AC0EA590488', color: 'var(--cyan)' },
-            { prompt: '$ ', code: 'raxclaw history', color: 'var(--cyan)' },
+            { prompt: '$ ', code: 'git clone https://github.com/JFKongphop/raxc-0g-agent-framework', color: 'var(--text-muted)' },
+            { prompt: '$ ', code: 'cd raxc-0g-agent-framework && pnpm install && pnpm build:all', color: 'var(--text-muted)' },
+            { prompt: '$ ', code: './dist/raxclaw run', color: 'var(--cyan)' },
+            { prompt: '$ ', code: './dist/raxclaw run --file MyContract.sol', color: 'var(--cyan)' },
+            { prompt: '$ ', code: './dist/raxclaw list', color: 'var(--cyan)' },
+            { prompt: '$ ', code: './dist/raxclaw show <report>', color: 'var(--cyan)' },
           ].map(({ prompt, code, color }, i) => (
             <div key={i} style={{ marginBottom: 8, color: 'var(--text-muted)' }}>
               <span style={{ color: 'var(--text-dim)' }}>{prompt}</span>
