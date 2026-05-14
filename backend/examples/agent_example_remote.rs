@@ -43,10 +43,10 @@ async fn main() -> Result<()> {
   // Production: re-index exploits with 0G Compute vectors, then switch to embed_0g_compute().
   std::env::set_var("USE_OPENAI_EMBEDDING", "true");
 
-  println!("\x1b[36m╔══════════════════════════════════════════════════════════════════════════╗\x1b[0m");
-  println!("\x1b[36m║\x1b[0m    \x1b[1;96mRAXC Multi-Agent Framework (Step 9.9) — Remote Storage Mode\x1b[0m           \x1b[36m║\x1b[0m");
-  println!("\x1b[36m║\x1b[0m    \x1b[2mDeterministic Exploit Execution + Verification Framework\x1b[0m              \x1b[36m║\x1b[0m");
-  println!("\x1b[36m╚══════════════════════════════════════════════════════════════════════════╝\x1b[0m\n");
+  println!("\x1b[1;96m╔══════════════════════════════════════════════════════════════════════════╗\x1b[0m");
+  println!("\x1b[1;96m║\x1b[0m  \x1b[1;96mRAXC Autonomous Exploit Intelligence Core — Sovereign Execution Mode\x1b[0m    \x1b[1;96m║\x1b[0m");
+  println!("\x1b[1;96m║\x1b[0m         \x1b[2mDeterministic Exploit Execution + Verification Framework\x1b[0m         \x1b[1;96m║\x1b[0m");
+  println!("\x1b[1;96m╚══════════════════════════════════════════════════════════════════════════╝\x1b[0m\n");
 
   // ─── Connect to remote storage API (fly.dev deployed server) ──────────────
   let server_url = "https://raxc-0g-agent-framework-j43hng.fly.dev";
@@ -183,15 +183,18 @@ interface IUniswapPair {
   };
 
   // ─── Run analysis ─────────────────────────────────────────────────────────────
-  println!("\n\x1b[33m[*]\x1b[0m Starting Step 9.9 analysis with full verification pipeline...\n");
+  println!("\n\x1b[33m[*]\x1b[0m Initiating autonomous exploit analysis — 13-phase verification pipeline...\n");
   let result = core.analyze(&contract_code, &contract_name).await?;
 
   // Save markdown report
-  std::fs::write(&result.filename, &result.markdown)?;
-  println!("\n\x1b[92m✅ Report saved to: {}\x1b[0m\n", result.filename);
+  let reports_dir = std::path::Path::new("reports");
+  std::fs::create_dir_all(reports_dir)?;
+  let report_path = reports_dir.join(&result.filename);
+  std::fs::write(&report_path, &result.markdown)?;
+  println!("\n\x1b[92m✅ Report saved to: {}\x1b[0m\n", report_path.display());
 
   println!("\n\x1b[36m╔══════════════════════════════════════════════════════════════════════════╗\x1b[0m");
-  println!("\x1b[36m║                  STEP 9.9 FRAMEWORK ANALYSIS RESULT                      ║\x1b[0m");
+  println!("\x1b[36m║                  AUTONOMOUS EXPLOIT INTELLIGENCE RESULT                  ║\x1b[0m");
   println!("\x1b[36m╚══════════════════════════════════════════════════════════════════════════╝\x1b[0m\n");
 
   println!("\x1b[1;96m📊 BASIC DECISION:\x1b[0m");
@@ -217,25 +220,25 @@ interface IUniswapPair {
   println!("  Success Probability: {:.1}%", result.attack_simulation.exploit_verdict.success_probability * 100.0);
   println!("  Replay ID:           {}", result.attack_simulation.replay_info.replay_id);
 
-  println!("\n\x1b[1;96m📊 GRAPH CONSTRUCTION [NEW Step 9.9]:\x1b[0m");
+  println!("\n\x1b[1;96m📊 GRAPH CONSTRUCTION — ATTACK MAP ENGINE:\x1b[0m");
   println!("  Graph Nodes:         {}", result.attack_graph.nodes.len());
   println!("  Graph Edges:         {}", result.attack_graph.edges.len());
   println!("  Root Node:           {}", result.attack_graph.root_node);
 
-  println!("\n\x1b[1;96m✅ CONSISTENCY VERIFICATION [NEW Step 9.9]:\x1b[0m");
+  println!("\n\x1b[1;96m✅ CONSISTENCY VERIFICATION — GATEKEEPER:\x1b[0m");
   println!("  Simulation Valid:    {}", if result.consistency_check.simulation_valid { "✅ PASS" } else { "❌ FAIL" });
   println!("  Graph Consistent:    {}", if result.consistency_check.graph_consistent { "✅ PASS" } else { "❌ FAIL" });
   println!("  State Correct:       {}", if result.consistency_check.state_correct { "✅ PASS" } else { "❌ FAIL" });
   println!("  Tool Conflict:       {}", if result.consistency_check.tool_conflict { "⚠️  YES" } else { "✅ NO" });
   println!("  Consistency Score:   {:.2}%", result.consistency_check.consistency_score * 100.0);
 
-  println!("\n\x1b[1;96m🎯 FINAL DECISION [NEW Step 9.9 - SINGLE AUTHORITY]:\x1b[0m");
+  println!("\n\x1b[1;96m🎯 FINAL DECISION — SOLE AUTHORITY:\x1b[0m");
   println!("  Final Verdict:       {}", result.final_decision.final_verdict);
   println!("  Final Confidence:    {:.2}%", result.final_decision.final_confidence * 100.0);
   println!("  Final Attack Prob:   {:.2}%", result.final_decision.final_attack_probability * 100.0);
   println!("  Final Risk Score:    {:.2}%", result.final_decision.final_risk_score * 100.0);
 
-  println!("\n\x1b[1;96m🔐 ATTESTATION [NEW Step 9.9 - VERIFIABLE PROOF]:\x1b[0m");
+  println!("\n\x1b[1;96m🔐 ATTESTATION — CRYPTOGRAPHIC PROOF:\x1b[0m");
   println!("  Replay ID:           {}", result.attestation.replay_id);
   println!("  Seed:                {}", result.attestation.seed);
   println!("  Trace Hash:          {}", result.attestation.execution_trace_hash);
@@ -246,27 +249,64 @@ interface IUniswapPair {
   println!("\x1b[97m{}\x1b[0m", result.explanation);
 
   println!("\n\x1b[36m╔════════════════════════════════════════════════════════════════════════════╗\x1b[0m");
-  println!("\x1b[36m║         STEP 9.9 — REMOTE STORAGE MODE COMPLETE                            ║\x1b[0m");
+  println!("\x1b[36m║         AUTONOMOUS ENGINE — REMOTE STORAGE MODE COMPLETE                   ║\x1b[0m");
   println!("\x1b[36m╠════════════════════════════════════════════════════════════════════════════╣\x1b[0m");
   println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m No local 0G Storage download — instant startup                          \x1b[36m║\x1b[0m");
   println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m Queries api_0g_storage server (<10ms per lookup)                        \x1b[36m║\x1b[0m");
-  println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m Same Step 9.9 pipeline: 13 phases, full attestation                     \x1b[36m║\x1b[0m");
+  println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m Same 13-phase autonomous pipeline, full attestation                     \x1b[36m║\x1b[0m");
   println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m 777 real DeFi exploits as vector DB (loaded once by server)             \x1b[36m║\x1b[0m");
   println!("\x1b[36m╚════════════════════════════════════════════════════════════════════════════╝\x1b[0m");
 
   // ─── ERC-7857: Record audit result on-chain (0G Galileo) ─────────────────────
-  // After the analysis, the root hash from 0G Storage is used to update the
-  // agent's iNFT intelligence pointer on-chain via update(tokenId, IntelligentData[]).
-  if let Err(e) = update_agent_nft(&result, &contract_name).await {
-    println!("\n\x1b[31m[!] ERC-7857 update skipped: {}\x1b[0m", e);
-    println!("\x1b[2m    → Set RAXC_AGENT_NFT_ADDRESS, RAXC_AGENT_TOKEN_ID, PRIVATE_KEY to enable\x1b[0m");
-  }
+  let erc7857_tx = match update_agent_nft(&result, &contract_name).await {
+    Ok(tx) => Some(tx),
+    Err(e) => {
+      println!("\n\x1b[31m[!] ERC-7857 update skipped: {}\x1b[0m", e);
+      println!("\x1b[2m    → Set RAXC_AGENT_NFT_ADDRESS, RAXC_AGENT_TOKEN_ID, PRIVATE_KEY to enable\x1b[0m");
+      None
+    }
+  };
 
   // ─── ERC-8183: Finalize audit task with proof ─────────────────────────────────
-  if let Some(task_id) = task_id_8183 {
-    if let Err(e) = finalize_audit_task(task_id, &result, &contract_name).await {
-      println!("\n\x1b[31m[!] ERC-8183 finalize skipped: {}\x1b[0m", e);
+  let erc8183_tx = if let Some(task_id) = task_id_8183 {
+    match finalize_audit_task(task_id, &result, &contract_name).await {
+      Ok(tx) => Some(tx),
+      Err(e) => {
+        println!("\n\x1b[31m[!] ERC-8183 finalize skipped: {}\x1b[0m", e);
+        None
+      }
     }
+  } else { None };
+
+  // ─── Append on-chain proof section to saved report ────────────────────────────
+  const EXPLORER: &str = "https://chainscan-galileo.0g.ai/tx/";
+  let fmt_tx = |tx: Option<&str>| -> String {
+    match tx {
+      Some(hash) => format!("[{}]({}{})", hash, EXPLORER, hash.trim_start_matches("0x")),
+      None => "—".to_string(),
+    }
+  };
+  let chain_proof = format!(
+    "\n\n---\n\n## 🔗 On-Chain Proof (0G Galileo)\n\n\
+| Field | Value |\n\
+|-------|-------|\n\
+| 0G Storage — JSON Summary | `{}` |\n\
+| 0G Storage — Full Report  | `{}` |\n\
+| Attestation Replay ID     | `{}` |\n\
+| Execution Trace Hash      | `{}` |\n\
+| ERC-7857 Intelligence TX  | {} |\n\
+| ERC-8183 Finalize TX      | {} |\n\
+| Chain                     | [0G Galileo (Chain 16602)](https://chainscan-galileo.0g.ai) |\n",
+    if result.storage_root_hash.is_empty() { "—".to_string() } else { result.storage_root_hash.clone() },
+    if result.report_root_hash.is_empty() { "—".to_string() } else { result.report_root_hash.clone() },
+    result.attestation.replay_id,
+    result.attestation.execution_trace_hash,
+    fmt_tx(erc7857_tx.as_deref()),
+    fmt_tx(erc8183_tx.as_deref()),
+  );
+  if let Err(e) = std::fs::OpenOptions::new().append(true).open(&report_path)
+    .and_then(|mut f| { use std::io::Write; f.write_all(chain_proof.as_bytes()) }) {
+    println!("[!] Could not append chain proof to report: {}", e);
   }
 
   Ok(())
@@ -283,7 +323,7 @@ interface IUniswapPair {
 ///   RAXC_AGENT_TOKEN_ID     — token ID (default: 0)
 ///   PRIVATE_KEY             — agent wallet private key (0x...)
 ///   OG_RPC_URL              — 0G Galileo RPC (default: https://evmrpc-testnet.0g.ai)
-async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) -> anyhow::Result<()> {
+async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) -> anyhow::Result<String> {
   let contract_addr = std::env::var("RAXC_AGENT_NFT_ADDRESS")
     .map_err(|_| anyhow::anyhow!("RAXC_AGENT_NFT_ADDRESS not set"))?;
   let token_id: u64 = std::env::var("RAXC_AGENT_TOKEN_ID")
@@ -376,10 +416,12 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
     .map_err(|e| anyhow::anyhow!("send_transaction failed: {}", e))?;
 
   println!("\x1b[35m[ERC-7857]       Intelligence updated on-chain (chain 16602)\x1b[0m");
-  println!("    TX: \x1b[92m0x{:x}\x1b[0m", pending.tx_hash());
+  let tx_hash = format!("0x{:x}", pending.tx_hash());
+  println!("    TX:  \x1b[92m{}\x1b[0m", tx_hash);
+  println!("    URL: \x1b[94mhttps://chainscan-galileo.0g.ai/tx/{}\x1b[0m", tx_hash);
   println!("\x1b[2m    Audit trace committed to 0G Galileo\x1b[0m");
 
-  Ok(())
+  Ok(tx_hash)
 }
 
 // ERC-8183 functions live in raxc::erc8183 (src/erc8183.rs)
