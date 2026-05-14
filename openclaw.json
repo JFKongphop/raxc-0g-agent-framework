@@ -1,0 +1,22 @@
+{
+  "agent": {
+    "model": "anthropic/claude-sonnet-4-5"
+  },
+  "agents": {
+    "defaults": {
+      "skills": ["raxc-security-audit"],
+      "workspace": "."
+    }
+  },
+  "skills": {
+    "load": {
+      "extraDirs": ["./skills"],
+      "watch": true
+    },
+    "entries": {
+      "raxc-security-audit": {
+        "enabled": true
+      }
+    }
+  }
+}
