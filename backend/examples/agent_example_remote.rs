@@ -30,7 +30,7 @@ use ethers::{
   middleware::SignerMiddleware,
   providers::{Http, Middleware, Provider},
   signers::{LocalWallet, Signer},
-  types::{Address, Bytes, TransactionRequest, U256},
+  types::{Address, Bytes, Filter, H256, TransactionRequest, U256},
 };
 
 #[tokio::main]
@@ -42,14 +42,14 @@ async fn main() -> Result<()> {
   // Production: re-index exploits with 0G Compute vectors, then switch to embed_0g_compute().
   std::env::set_var("USE_OPENAI_EMBEDDING", "true");
 
-  println!("╔══════════════════════════════════════════════════════════════════════════╗");
-  println!("║    RAXC Multi-Agent Framework (Step 9.9) — Remote Storage Mode          ║");
-  println!("║    Deterministic Exploit Execution + Verification Framework             ║");
-  println!("╚══════════════════════════════════════════════════════════════════════════╝\n");
+  println!("\x1b[36m╔══════════════════════════════════════════════════════════════════════════╗\x1b[0m");
+  println!("\x1b[36m║\x1b[0m    \x1b[1;96mRAXC Multi-Agent Framework (Step 9.9) — Remote Storage Mode\x1b[0m           \x1b[36m║\x1b[0m");
+  println!("\x1b[36m║\x1b[0m    \x1b[2mDeterministic Exploit Execution + Verification Framework\x1b[0m              \x1b[36m║\x1b[0m");
+  println!("\x1b[36m╚══════════════════════════════════════════════════════════════════════════╝\x1b[0m\n");
 
   // ─── Connect to remote storage API (fly.dev deployed server) ──────────────
   let server_url = "https://raxc-0g-agent-framework-j43hng.fly.dev";
-  println!("[*] Connecting to api_0g_storage server ({})...", server_url);
+  println!("\x1b[33m[*] Connecting to api_0g_storage server ({})...\x1b[0m", server_url);
   let remote_storage = RemoteOgStorageClient::new(server_url);
 
   let loaded = remote_storage.health().await
@@ -58,7 +58,7 @@ async fn main() -> Result<()> {
       → URL: {}", e, server_url
     ))?;
 
-  println!("[✓] Storage server online — {} exploits loaded\n", loaded);
+  println!("\x1b[92m[✓] Storage server online — {} exploits loaded\x1b[0m\n", loaded);
 
   // ─── Initialize 0G Compute client ────────────────────────────────────────────
   let compute = Arc::new(build_og_compute()?);
@@ -67,7 +67,7 @@ async fn main() -> Result<()> {
   let mut core = AgentCore::new_remote((*compute).clone());
 
   // ─── Register tools ──────────────────────────────────────────────────────────
-  println!("[*] Registering tools to ToolRegistry...");
+  println!("\x1b[33m[*] Registering tools to ToolRegistry...\x1b[0m");
   core.tools.register(Box::new(RaxcAnalyzerRemote::new(remote_storage, (*compute).clone())));
   core.tools.register(Box::new(GasAnalyzerTool::new()));
   core.tools.register(Box::new(PatternDetectorTool::new()));
@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
   // Uses OgStorageClient::new_empty() — no exploit DB needed, only search_analyses()
   let memory_storage = Arc::new(OgStorageClient::new_empty());
   core.tools.register(Box::new(MemoryTool::new(memory_storage)));
-  println!("[✓] Registered {} tools\n", core.tools.tool_count());
+  println!("\x1b[92m[✓] Registered {} tools\x1b[0m\n", core.tools.tool_count());
 
   // ─── DeFiVault — triggers all 6 tools ────────────────────────────────────────
   // ✅ PatternDetectorTool  : reentrancy (.call before state update)
@@ -87,7 +87,7 @@ async fn main() -> Result<()> {
   // ✅ GasAnalyzerTool      : array.length in loop, string memory param
   // ✅ RaxcAnalyzerRemote   : RAG match against 722 real exploits
   // ✅ ReflectionTool       : 0G Compute self-critique of consensus result
-  let contract = r#"
+  let default_contract = r#"
 pragma solidity ^0.7.0;
 
 contract DeFiVault {
@@ -141,19 +141,45 @@ interface IUniswapPair {
 }
   "#;
 
+  // ─── Load contract (inline code, --file path, or built-in DeFiVault demo) ─────────────
+  let (contract_code, contract_name) = if let Ok(code) = std::env::var("RAXC_CONTRACT_CODE") {
+    // Extract name from "contract FooBar {" pattern
+    let name = code.split_whitespace()
+      .skip_while(|w| *w != "contract")
+      .nth(1)
+      .map(|s| s.trim_matches(|c: char| !c.is_alphanumeric() && c != '_').to_string())
+      .filter(|s| !s.is_empty())
+      .unwrap_or_else(|| "Contract".to_string());
+    println!("\x1b[33m[*]\x1b[0m Analyzing inline contract: \x1b[97m{}\x1b[0m", name);
+    (code, name)
+  } else if let Ok(file_path) = std::env::var("RAXC_CONTRACT_FILE") {
+    println!("\x1b[33m[*]\x1b[0m Loading contract from: \x1b[97m{}\x1b[0m", file_path);
+    let code = std::fs::read_to_string(&file_path)
+      .map_err(|e| anyhow::anyhow!("Cannot read '{}': {}", file_path, e))?;
+    let name = std::path::Path::new(&file_path)
+      .file_stem()
+      .and_then(|s| s.to_str())
+      .unwrap_or("Contract")
+      .to_string();
+    (code, name)
+  } else {
+    println!("\x1b[2m    (no --file given — using built-in DeFiVault demo contract)\x1b[0m");
+    (default_contract.to_string(), "DeFiVault".to_string())
+  };
+
   // ─── Run analysis ─────────────────────────────────────────────────────────────
-  println!("\n[*] Starting Step 9.9 analysis with full verification pipeline...\n");
-  let result = core.analyze(contract, "DeFiVault").await?;
+  println!("\n\x1b[33m[*]\x1b[0m Starting Step 9.9 analysis with full verification pipeline...\n");
+  let result = core.analyze(&contract_code, &contract_name).await?;
 
   // Save markdown report
   std::fs::write(&result.filename, &result.markdown)?;
-  println!("\n✅ Report saved to: {}\n", result.filename);
+  println!("\n\x1b[92m✅ Report saved to: {}\x1b[0m\n", result.filename);
 
-  println!("\n╔══════════════════════════════════════════════════════════════════════════╗");
-  println!("║                  STEP 9.9 FRAMEWORK ANALYSIS RESULT                      ║");
-  println!("╚══════════════════════════════════════════════════════════════════════════╝\n");
+  println!("\n\x1b[36m╔══════════════════════════════════════════════════════════════════════════╗\x1b[0m");
+  println!("\x1b[36m║                  STEP 9.9 FRAMEWORK ANALYSIS RESULT                      ║\x1b[0m");
+  println!("\x1b[36m╚══════════════════════════════════════════════════════════════════════════╝\x1b[0m\n");
 
-  println!("📊 BASIC DECISION:");
+  println!("\x1b[1;96m📊 BASIC DECISION:\x1b[0m");
   println!("  Vulnerability Found:  {}", result.decision.vulnerability_found);
   println!("  Risk Level:          {}", result.decision.risk_level);
   if let Some(vuln) = &result.decision.primary_vulnerability {
@@ -162,13 +188,13 @@ interface IUniswapPair {
   println!("  Confidence:          {:.1}%", result.decision.confidence * 100.0);
   println!("  Tool Signals:        {}", result.signals.len());
 
-  println!("\n📈 INTELLIGENCE REPORT:");
+  println!("\n\x1b[1;96m📈 INTELLIGENCE REPORT:\x1b[0m");
   println!("  Risk Score:          {:.2}%", result.intelligence_report.risk_score * 100.0);
   println!("  Exploitability:      {:.2}%", result.intelligence_report.exploitability_score * 100.0);
   println!("  Attack Likelihood:   {:.2}%", result.intelligence_report.attack_likelihood * 100.0);
   println!("  Classification:      {}", result.intelligence_report.final_classification);
 
-  println!("\n🧪 ATTACK SIMULATION:");
+  println!("\n\x1b[1;96m🧪 ATTACK SIMULATION:\x1b[0m");
   println!("  Execution Path:      {} steps", result.attack_simulation.execution_path.len());
   println!("  State Transitions:   {} tracked", result.attack_simulation.state_transitions.len());
   println!("  Attacker Type:       {}", result.attack_simulation.attacker_model.attacker_type);
@@ -176,49 +202,49 @@ interface IUniswapPair {
   println!("  Success Probability: {:.1}%", result.attack_simulation.exploit_verdict.success_probability * 100.0);
   println!("  Replay ID:           {}", result.attack_simulation.replay_info.replay_id);
 
-  println!("\n📊 GRAPH CONSTRUCTION [NEW Step 9.9]:");
+  println!("\n\x1b[1;96m📊 GRAPH CONSTRUCTION [NEW Step 9.9]:\x1b[0m");
   println!("  Graph Nodes:         {}", result.attack_graph.nodes.len());
   println!("  Graph Edges:         {}", result.attack_graph.edges.len());
   println!("  Root Node:           {}", result.attack_graph.root_node);
 
-  println!("\n✅ CONSISTENCY VERIFICATION [NEW Step 9.9]:");
+  println!("\n\x1b[1;96m✅ CONSISTENCY VERIFICATION [NEW Step 9.9]:\x1b[0m");
   println!("  Simulation Valid:    {}", if result.consistency_check.simulation_valid { "✅ PASS" } else { "❌ FAIL" });
   println!("  Graph Consistent:    {}", if result.consistency_check.graph_consistent { "✅ PASS" } else { "❌ FAIL" });
   println!("  State Correct:       {}", if result.consistency_check.state_correct { "✅ PASS" } else { "❌ FAIL" });
   println!("  Tool Conflict:       {}", if result.consistency_check.tool_conflict { "⚠️  YES" } else { "✅ NO" });
   println!("  Consistency Score:   {:.2}%", result.consistency_check.consistency_score * 100.0);
 
-  println!("\n🎯 FINAL DECISION [NEW Step 9.9 - SINGLE AUTHORITY]:");
+  println!("\n\x1b[1;96m🎯 FINAL DECISION [NEW Step 9.9 - SINGLE AUTHORITY]:\x1b[0m");
   println!("  Final Verdict:       {}", result.final_decision.final_verdict);
   println!("  Final Confidence:    {:.2}%", result.final_decision.final_confidence * 100.0);
   println!("  Final Attack Prob:   {:.2}%", result.final_decision.final_attack_probability * 100.0);
   println!("  Final Risk Score:    {:.2}%", result.final_decision.final_risk_score * 100.0);
 
-  println!("\n🔐 ATTESTATION [NEW Step 9.9 - VERIFIABLE PROOF]:");
+  println!("\n\x1b[1;96m🔐 ATTESTATION [NEW Step 9.9 - VERIFIABLE PROOF]:\x1b[0m");
   println!("  Replay ID:           {}", result.attestation.replay_id);
   println!("  Seed:                {}", result.attestation.seed);
   println!("  Trace Hash:          {}", result.attestation.execution_trace_hash);
   println!("  Timestamp:           {}", result.attestation.timestamp);
   println!("  Verdict:             {}", result.attestation.final_verdict);
 
-  println!("\n[🧠 LLM EXPLANATION]");
-  println!("{}", result.explanation);
+  println!("\n\x1b[1;35m[🧠 LLM EXPLANATION]\x1b[0m");
+  println!("\x1b[97m{}\x1b[0m", result.explanation);
 
-  println!("\n╔══════════════════════════════════════════════════════════════════════════╗");
-  println!("║         STEP 9.9 — REMOTE STORAGE MODE COMPLETE                          ║");
-  println!("╠══════════════════════════════════════════════════════════════════════════╣");
-  println!("║  ✓ No local 0G Storage download — instant startup                       ║");
-  println!("║  ✓ Queries api_0g_storage server (<10ms per lookup)                     ║");
-  println!("║  ✓ Same Step 9.9 pipeline: 13 phases, full attestation                  ║");
-  println!("║  ✓ 777 real DeFi exploits as vector DB (loaded once by server)          ║");
-  println!("╚══════════════════════════════════════════════════════════════════════════╝");
+  println!("\n\x1b[36m╔════════════════════════════════════════════════════════════════════════════╗\x1b[0m");
+  println!("\x1b[36m║         STEP 9.9 — REMOTE STORAGE MODE COMPLETE                            ║\x1b[0m");
+  println!("\x1b[36m╠════════════════════════════════════════════════════════════════════════════╣\x1b[0m");
+  println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m No local 0G Storage download — instant startup                          \x1b[36m║\x1b[0m");
+  println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m Queries api_0g_storage server (<10ms per lookup)                        \x1b[36m║\x1b[0m");
+  println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m Same Step 9.9 pipeline: 13 phases, full attestation                     \x1b[36m║\x1b[0m");
+  println!("\x1b[36m║\x1b[0m  \x1b[92m✓\x1b[0m 777 real DeFi exploits as vector DB (loaded once by server)             \x1b[36m║\x1b[0m");
+  println!("\x1b[36m╚════════════════════════════════════════════════════════════════════════════╝\x1b[0m");
 
   // ─── ERC-7857: Record audit result on-chain (0G Galileo) ─────────────────────
   // After the analysis, the root hash from 0G Storage is used to update the
   // agent's iNFT intelligence pointer on-chain via update(tokenId, IntelligentData[]).
   if let Err(e) = update_agent_nft(&result, "DeFiVault").await {
-    println!("\n[!] ERC-7857 update skipped: {}", e);
-    println!("    → Set RAXC_AGENT_NFT_ADDRESS, RAXC_AGENT_TOKEN_ID, PRIVATE_KEY to enable");
+    println!("\n\x1b[31m[!] ERC-7857 update skipped: {}\x1b[0m", e);
+    println!("\x1b[2m    → Set RAXC_AGENT_NFT_ADDRESS, RAXC_AGENT_TOKEN_ID, PRIVATE_KEY to enable\x1b[0m");
   }
 
   Ok(())
@@ -246,9 +272,24 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let rpc_url = std::env::var("OG_RPC_URL")
     .unwrap_or_else(|_| "https://evmrpc-testnet.0g.ai".to_string());
 
+  // Query on-chain Updated events to get current audit number
+  let provider = Provider::<Http>::try_from(rpc_url.as_str())?;
+  let contract_addr: Address = contract_addr.parse()?;
+  let event_sig = H256::from(ethers::utils::keccak256(
+    b"Updated(uint256,(string,bytes32)[],(string,bytes32)[])"
+  ));
+  let filter = Filter::new()
+    .address(contract_addr)
+    .topic0(event_sig)
+    .from_block(0u64)
+    .to_block(ethers::types::BlockNumber::Latest);
+  let past_count = provider.get_logs(&filter).await.unwrap_or_default().len();
+  let audit_number = past_count + 1;
+
   // Build description
   let description = format!(
-    "RAXC Audit: {} | {} | {} | {:.0}% confidence | {}",
+    "RAXC Audit #{}: {} | {} | {} | {:.0}% confidence | {}",
+    audit_number,
     contract_name,
     result.decision.primary_vulnerability.as_deref().unwrap_or("No vuln"),
     result.decision.risk_level,
@@ -269,11 +310,11 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let mut data_hash = [0u8; 32];
   data_hash.copy_from_slice(&hash_bytes);
 
-  println!("\n[ERC-7857]       Updating agent intelligence on 0G Galileo...");
-  println!("    Contract: {}", contract_addr);
-  println!("    Token ID: {}", token_id);
-  println!("    Description: {}", description);
-  println!("    Data Hash: 0x{}", hash_hex_padded);
+  println!("\n\x1b[35m[ERC-7857]       Updating agent intelligence on 0G Galileo...\x1b[0m");
+  println!("\x1b[2m    Contract:    {}\x1b[0m", contract_addr);
+  println!("\x1b[2m    Agent NFT:   Token #{} (Update #{} on this NFT)\x1b[0m", token_id, audit_number);
+  println!("\x1b[2m    Description: {}\x1b[0m", description);
+  println!("\x1b[2m    Data Hash:   0x{}\x1b[0m", hash_hex_padded);
 
   // ── ABI-encode update(uint256, (string,bytes32)[]) ────────────────────────
   // Selector: keccak256("update(uint256,(string,bytes32)[])")[0..4]
@@ -298,16 +339,13 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   calldata.extend_from_slice(&params);
 
   // ── Build signer + provider ───────────────────────────────────────────────
-  let provider = Provider::<Http>::try_from(rpc_url.as_str())?;
   let wallet: LocalWallet = private_key.trim_start_matches("0x")
     .parse::<ethers::signers::LocalWallet>()?
     .with_chain_id(16602u64);
   let client = Arc::new(SignerMiddleware::new(provider, wallet.clone()));
 
-  let to: Address = contract_addr.parse()?;
-
   let tx = TransactionRequest::new()
-    .to(to)
+    .to(contract_addr)
     .data(Bytes::from(calldata))
     .gas_price(3_000_000_000u64)  // 3 gwei — legacy tx for 0G Galileo
     .chain_id(16602u64);
@@ -315,9 +353,9 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let pending = client.send_transaction(tx, None).await
     .map_err(|e| anyhow::anyhow!("send_transaction failed: {}", e))?;
 
-  println!("[ERC-7857]       Intelligence updated on-chain (chain 16602)");
-  println!("    TX: 0x{:x}", pending.tx_hash());
-  println!("    Audit trace committed to 0G Galileo");
+  println!("\x1b[35m[ERC-7857]       Intelligence updated on-chain (chain 16602)\x1b[0m");
+  println!("    TX: \x1b[92m0x{:x}\x1b[0m", pending.tx_hash());
+  println!("\x1b[2m    Audit trace committed to 0G Galileo\x1b[0m");
 
   Ok(())
 }
