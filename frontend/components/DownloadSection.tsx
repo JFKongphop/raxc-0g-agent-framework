@@ -28,7 +28,7 @@ export function DownloadSection() {
       <div className="section-inner">
         <div style={{ textAlign: 'center', marginBottom: 60 }}>
           <div className="section-label">Download</div>
-          <h2 className="section-title">Deploy the Runtime</h2>
+          <h2 className="section-title">Runtime Installation</h2>
           <p
             className="section-desc"
             style={{ margin: '0 auto', textAlign: 'center' }}
