@@ -1,5 +1,6 @@
 *.md
 !README.md
+!SKILL.md
 .env
 target
 datasets-protocol-exploit
