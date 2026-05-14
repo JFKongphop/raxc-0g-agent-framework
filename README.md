@@ -130,6 +130,29 @@ const flow = getFlowContract(BLOCKCHAIN_RPC, signer);
 // upload: Batcher.appendFile() → indexer.upload()
 ```
 
+**Proof of real 0G Storage** — every exploit file has a permanent root hash written to [`backend/manifest.json`](https://github.com/JFKongphop/raxc-0g-agent-framework/blob/main/backend/manifest.json). Sample entries:
+
+| Exploit | Category | 0G Root Hash |
+|---------|----------|-------------|
+| `Reentrancy` | defi_cases | `0x3f3a2145...779f789` |
+| `Flashloan-flaw` | defi_cases | `0x95aa40ce...b268da6` |
+| `Price_manipulation` | defi_cases | `0xb570cc94...df8dd8` |
+| `Overflow` | defi_cases | `0x11aaf4ee...692ba` |
+| `ERC777-reentrancy` | defi_cases | `0x969e9402...e9f58` |
+| `Parity_first_hack` | defi_protocols | `0xcb4b0f21...abb93f` |
+| `dodo_flashloan` | defi_protocols | `0xb31ff05c...e107` |
+| `SpankChain` | defi_protocols | `0xb98e53f4...b51a` |
+
+Verify any entry by downloading it directly from 0G Storage:
+```bash
+./backend/0g-cli download \
+  --indexer https://indexer-storage-testnet-turbo.0g.ai \
+  --root 0x3f3a21452d595f571c16caa908f68a612156d9ef2b2e0262599d0483c779f789 \
+  --file /tmp/reentrancy.bin
+```
+
+Full manifest (722 entries): [`backend/manifest.json`](https://github.com/JFKongphop/raxc-0g-agent-framework/blob/main/backend/manifest.json)
+
 ---
 
 ### 2. 0G Storage — Remote Query Server
