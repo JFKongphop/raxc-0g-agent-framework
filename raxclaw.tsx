@@ -239,7 +239,7 @@ const RunUI: FC<{ contractCode?: string; contractFile?: string }> = ({ contractC
 
       <Static items={lines}>
         {(line) => (
-          <Text key={line.id} dimColor>
+          <Text key={line.id}>
             {line.text}
           </Text>
         )}
@@ -343,31 +343,26 @@ interface ReportMeta {
 }
 
 function findReports(): ReportMeta[] {
-  const dirs = [
-    path.join(REPO_ROOT, "backend"),
-    path.join(REPO_ROOT, "backend", "reports"),
-  ];
+  const dir = path.join(REPO_ROOT, "backend", "reports");
   const reports: ReportMeta[] = [];
-  for (const dir of dirs) {
-    if (!fs.existsSync(dir)) continue;
-    const files = fs.readdirSync(dir).filter(
-      (f) => f.startsWith("RAXC_") && f.endsWith(".md")
-    );
-    for (const file of files) {
-      const m = file.match(/^RAXC_(.+?)_(.+?)_(\d{8})_(\d{6})_(\d+)pct\.md$/);
-      reports.push({
-        name: file,
-        filePath: path.join(dir, file),
-        contract: m ? m[1] : "Unknown",
-        vuln: m ? m[2] : "Unknown",
-        date: m
-          ? `${m[3].slice(0, 4)}-${m[3].slice(4, 6)}-${m[3].slice(6, 8)} ${m[4].slice(0, 2)}:${m[4].slice(2, 4)}`
-          : "",
-        confidence: m ? `${m[5]}%` : "",
-      });
-    }
+  if (!fs.existsSync(dir)) return reports;
+  const files = fs.readdirSync(dir).filter(
+    (f) => f.startsWith("RAXC_") && f.endsWith(".md")
+  );
+  for (const file of files) {
+    const m = file.match(/^RAXC_(.+?)_(.+?)_(\d{8})_(\d{6})_(\d+)pct\.md$/);
+    reports.push({
+      name: file,
+      filePath: path.join(dir, file),
+      contract: m ? m[1] : "Unknown",
+      vuln: m ? m[2] : "Unknown",
+      date: m
+        ? `${m[3].slice(0, 4)}-${m[3].slice(4, 6)}-${m[3].slice(6, 8)} ${m[4].slice(0, 2)}:${m[4].slice(2, 4)}`
+        : "",
+      confidence: m ? `${m[5]}%` : "",
+    });
   }
-  return reports.sort((a, b) => b.name.localeCompare(a.name));
+  return reports.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 const ListUI: FC = () => {
@@ -404,16 +399,46 @@ const ListUI: FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Show a single report
+// Markdown renderer helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+type InlineSeg = { text: string; bold?: boolean; code?: boolean };
+
+function parseInline(raw: string): InlineSeg[] {
+  const result: InlineSeg[] = [];
+  const re = /\*\*([^*]+)\*\*|`([^`]+)`|([^*`]+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(raw)) !== null) {
+    if (m[1] !== undefined) result.push({ text: m[1], bold: true });
+    else if (m[2] !== undefined) result.push({ text: m[2], code: true });
+    else if (m[3] !== undefined) result.push({ text: m[3] });
+  }
+  return result.length ? result : [{ text: raw }];
+}
+
+const InlineLine: FC<{ raw: string; color?: string }> = ({ raw, color }) => (
+  <Text>
+    {parseInline(raw).map((seg, i) =>
+      seg.bold ? (
+        <Text key={i} bold color={color ?? "white"}>{seg.text}</Text>
+      ) : seg.code ? (
+        <Text key={i} color="yellow">{seg.text}</Text>
+      ) : (
+        <Text key={i} color={color}>{seg.text}</Text>
+      )
+    )}
+  </Text>
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Show a single report — Ink-rendered markdown
 // ─────────────────────────────────────────────────────────────────────────────
 const ShowUI: FC<{ query: string }> = ({ query }) => {
   const { exit } = useApp();
   useEffect(() => { exit(); }, [exit]);
 
-  // Match by exact name, partial name, or index ("1", "2", …)
   const reports = findReports();
   let found: ReportMeta | undefined;
-
   const idx = parseInt(query, 10);
   if (!isNaN(idx) && idx >= 1 && idx <= reports.length) {
     found = reports[idx - 1];
@@ -435,28 +460,174 @@ const ShowUI: FC<{ query: string }> = ({ query }) => {
   }
 
   const content = fs.readFileSync(found.filePath, "utf-8");
-  const lines = content.split("\n");
+  const rawLines = content.split("\n");
+  const W = Math.min((process.stdout.columns ?? 100) - 4, 96);
+  const divider = "─".repeat(W);
+
+  // ── Pre-process lines into typed blocks (handles code fences correctly) ───
+  type Block =
+    | { kind: "h1" | "h2" | "h3" | "h4"; text: string }
+    | { kind: "rule" | "blank" | "codeend" }
+    | { kind: "bullet"; indent: number; text: string }
+    | { kind: "numbered"; num: string; text: string }
+    | { kind: "blockquote"; text: string }
+    | { kind: "tablerow"; cells: string[]; isSep: boolean }
+    | { kind: "codestart"; lang: string }
+    | { kind: "codeline"; text: string }
+    | { kind: "text"; text: string };
+
+  const blocks: Block[] = [];
+  let inCode = false;
+  for (const line of rawLines) {
+    if (line.startsWith("```")) {
+      inCode = !inCode;
+      if (inCode) blocks.push({ kind: "codestart", lang: line.slice(3).trim() });
+      else         blocks.push({ kind: "codeend" });
+      continue;
+    }
+    if (inCode)            { blocks.push({ kind: "codeline", text: line }); continue; }
+    if (line.trim() === "") { blocks.push({ kind: "blank" }); continue; }
+    if (line.startsWith("# "))    { blocks.push({ kind: "h1", text: line.slice(2) }); continue; }
+    if (line.startsWith("## "))   { blocks.push({ kind: "h2", text: line.slice(3) }); continue; }
+    if (line.startsWith("### "))  { blocks.push({ kind: "h3", text: line.slice(4) }); continue; }
+    if (line.startsWith("#### ")) { blocks.push({ kind: "h4", text: line.slice(5) }); continue; }
+    if (/^[-*_]{3,}\s*$/.test(line)) { blocks.push({ kind: "rule" }); continue; }
+    const bm = line.match(/^(\s*)[-*] (.*)/);
+    if (bm) { blocks.push({ kind: "bullet", indent: bm[1].length, text: bm[2] }); continue; }
+    const nm = line.match(/^(\d+)\. (.*)/);
+    if (nm) { blocks.push({ kind: "numbered", num: nm[1], text: nm[2] }); continue; }
+    if (line.startsWith("> ")) { blocks.push({ kind: "blockquote", text: line.slice(2) }); continue; }
+    if (line.startsWith("|")) {
+      const stripMdLink = (s: string) => s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+      const cells = line.split("|").slice(1, -1).map(c => stripMdLink(c.trim()));
+      blocks.push({ kind: "tablerow", cells, isSep: cells.every(c => /^[-: ]+$/.test(c)) });
+      continue;
+    }
+    blocks.push({ kind: "text", text: line });
+  }
+
+  // Pre-compute max column widths per consecutive table group
+  const tableColWidths = new Map<number, number[]>();
+  {
+    let ws: number[] = [];
+    let lastIdx = -2;
+    for (let idx = 0; idx < blocks.length; idx++) {
+      const blk = blocks[idx];
+      if (blk.kind === "tablerow") {
+        if (idx !== lastIdx + 1) ws = [];
+        lastIdx = idx;
+        if (!blk.isSep) blk.cells.forEach((cell, ci) => { ws[ci] = Math.max(ws[ci] ?? 0, cell.length); });
+        tableColWidths.set(idx, ws);
+      }
+    }
+  }
 
   return (
     <Box flexDirection="column" paddingX={1}>
       <Banner />
-      <Text bold color="cyan">📄  {found.name}</Text>
+      <Box flexDirection="column" marginBottom={1}>
+        <Text bold color="cyanBright">{"📄  "}{found.name}</Text>
+        <Text color="gray" dimColor>{found.filePath}</Text>
+      </Box>
+      <Text color="gray">{divider}</Text>
       <Newline />
-      {lines.map((line, i) => {
-        if (line.startsWith("# "))
-          return <Text key={i} bold color="cyan">{line}</Text>;
-        if (line.startsWith("## "))
-          return <Text key={i} bold color="yellow">{line}</Text>;
-        if (line.startsWith("### "))
-          return <Text key={i} bold color="green">{line}</Text>;
-        if (line.startsWith("```") || line.startsWith("|"))
-          return <Text key={i} color="gray">{line}</Text>;
-        if (line.startsWith("- ") || line.startsWith("* "))
-          return <Text key={i}><Text color="cyan">{"  • "}</Text><Text>{line.slice(2)}</Text></Text>;
-        if (line.trim() === "")
-          return <Newline key={i} />;
-        return <Text key={i}>{line}</Text>;
+
+      {blocks.map((b, i) => {
+        switch (b.kind) {
+          case "h1": return (
+            <Box key={i} flexDirection="column" marginTop={1}>
+              <Text bold color="cyanBright">{"┌─  "}<Text bold color="whiteBright">{b.text}</Text></Text>
+              <Text color="cyan">{"└" + "─".repeat(Math.min(b.text.length + 5, W - 1))}</Text>
+            </Box>
+          );
+          case "h2": return (
+            <Box key={i} flexDirection="column" marginTop={1}>
+              <Text bold color="yellowBright">{"  ▶  "}{b.text}</Text>
+              <Text color="yellow" dimColor>{"  " + "─".repeat(Math.min(b.text.length + 5, W - 2))}</Text>
+            </Box>
+          );
+          case "h3": return (
+            <Text key={i} bold color="greenBright">{"    ◆  "}{b.text}</Text>
+          );
+          case "h4": return (
+            <Text key={i} bold color="whiteBright">{"      ▸  "}{b.text}</Text>
+          );
+          case "rule": return (
+            <Text key={i} color="gray" dimColor>{divider}</Text>
+          );
+          case "blank": return <Newline key={i} />;
+          case "bullet": return (
+            <Text key={i}>
+              <Text color="cyan">{"  ".repeat(Math.floor(b.indent / 2)) + "  • "}</Text>
+              <InlineLine raw={b.text} />
+            </Text>
+          );
+          case "numbered": return (
+            <Text key={i}>
+              <Text bold color="cyan">{`  ${b.num.padStart(2)}.  `}</Text>
+              <InlineLine raw={b.text} />
+            </Text>
+          );
+          case "blockquote": return (
+            <Text key={i}>
+              <Text bold color="cyan">{"  │ "}</Text>
+              <Text color="white" dimColor>{b.text}</Text>
+            </Text>
+          );
+          case "tablerow": {
+            const widths = tableColWidths.get(i) ?? b.cells.map(c => c.length);
+            if (b.isSep) return (
+              <Text key={i} color="gray" dimColor>
+                {"  " + widths.map(w => "─".repeat(Math.max(w, 3))).join("─┼─")}
+              </Text>
+            );
+            const isHeader = blocks[i + 1]?.kind === "tablerow" && (blocks[i + 1] as any).isSep;
+            return (
+              <Text key={i}>
+                <Text color="gray">{"  "}</Text>
+                {b.cells.map((cell, ci) => (
+                  <Text key={ci}>
+                    {ci > 0 ? <Text color="gray">{" │ "}</Text> : null}
+                    <Text bold={isHeader} color={isHeader ? "whiteBright" : ci === 0 ? "cyan" : ci === 1 ? "yellowBright" : "white"}>
+                      {cell.padEnd(widths[ci] ?? cell.length)}
+                    </Text>
+                  </Text>
+                ))}
+              </Text>
+            );
+          }
+          case "codestart": {
+            const lang = b.lang || "code";
+            const fill = "═".repeat(Math.max(0, W - 7 - lang.length));
+            return (
+              <Box key={i} marginTop={1}>
+                <Text color="gray">{"  ╔═ "}<Text color="yellow">{lang}</Text><Text color="gray">{" " + fill + "╗"}</Text></Text>
+              </Box>
+            );
+          }
+          case "codeend": return (
+            <Text key={i} color="gray">{"  ╚" + "═".repeat(Math.max(0, W - 4)) + "╝"}</Text>
+          );
+          case "codeline": {
+            const maxText = W - 7;
+            const display = b.text.length > maxText ? b.text.slice(0, maxText - 1) + "…" : b.text;
+            const pad = " ".repeat(Math.max(0, maxText - display.length));
+            return (
+              <Text key={i}>
+                <Text color="gray">{"  ║  "}</Text>
+                <Text color="greenBright">{display}</Text>
+                <Text color="gray">{pad + " ║"}</Text>
+              </Text>
+            );
+          }
+          case "text": return <Text key={i}><InlineLine raw={b.text} /></Text>;
+          default: return null;
+        }
       })}
+
+      <Newline />
+      <Text color="gray">{divider}</Text>
+      <Text color="gray" dimColor>{"  "}{found.name}{"  ·  raxclaw v1.0.0"}</Text>
       <Newline />
     </Box>
   );
