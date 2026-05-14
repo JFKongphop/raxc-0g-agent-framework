@@ -166,13 +166,13 @@ impl ToolRegistry {
   
   /// Add a tool to the registry
   pub fn register(&mut self, tool: Box<dyn Tool>) {
-    println!("[✓] Registered tool: {}", tool.name());
+    println!("\x1b[92m[✓]\x1b[0m Registered tool: {}", tool.name());
     self.tools.push(tool);
   }
   
   /// Execute all registered tools in parallel
   pub async fn execute_all(&self, input: &str) -> Vec<ToolSignal> {
-    println!("[*] Executing {} tools in parallel...", self.tools.len());
+    println!("\x1b[33m[*]\x1b[0m Executing {}  tools in parallel...", self.tools.len());
     let futures: Vec<_> = self.tools.iter()
       .map(|t| async move { t.execute(input).await })
       .collect();
@@ -1615,7 +1615,7 @@ impl ConsensusEngine {
     
     let final_confidence = (avg_confidence + bonus).min(1.0);
     
-    println!("[*] Consensus reached: {} (confidence: {:.2}%, {} of {} agents agree)",
+    println!("\x1b[33m[*]\x1b[0m Consensus reached: {} (confidence: {:.2}%, {} of {} agents agree)",
       primary_vulnerability, final_confidence * 100.0, agreeing_votes.len(), votes.len());
     
     // Use SeverityLock for deterministic severity mapping (Step 9.5)
@@ -1653,14 +1653,14 @@ impl MemoryLayer {
     let _value = serde_json::to_string(result)?;
     
     // Note: Actual 0G Storage write would go here
-    println!("[*] Storing analysis to memory: {}", key);
+    println!("\x1b[33m[*]\x1b[0m Storing analysis to memory: {}", key);
     Ok(())
   }
   
   /// Retrieve similar past analyses (placeholder for semantic search)
   pub async fn retrieve_similar(&self, _contract: &str) -> Vec<ToolSignal> {
     // Note: Would query 0G Storage for similar contracts
-    println!("[*] Retrieving similar past analyses from memory...");
+    println!("\x1b[33m[*]\x1b[0m Retrieving similar past analyses from memory...");
     Vec::new()  // Placeholder
   }
   
@@ -1688,9 +1688,12 @@ pub struct AnalysisResult {
   pub attestation: AttestationProof,             // Step 9.9: Verifiable Attestation
   pub markdown: String,
   pub filename: String,
-  /// 0G Storage root hash from store_memory() — used for ERC-7857 update() call.
+  /// 0G Storage root hash of the JSON summary — used for ERC-7857 update() call.
   /// Empty string if storage upload was skipped or failed.
   pub storage_root_hash: String,
+  /// 0G Storage root hash of the full markdown report upload.
+  /// Empty string if storage upload was skipped or failed.
+  pub report_root_hash: String,
 }
 
 // ─── Report Engine (Markdown Generator) ──────────────────────────────────────
@@ -2642,7 +2645,7 @@ pub struct AgentCore {
 
 impl AgentCore {
   pub fn new(storage: OgStorageClient, compute: OgComputeClient) -> Self {
-    println!("[*] Initializing RAXC Multi-Agent Framework...");
+    println!("\x1b[33m[*]\x1b[0m Initializing RAXC Multi-Agent Framework...");
     Self {
       tools: ToolRegistry::new(),
       memory: MemoryLayer::new(storage),
@@ -2653,7 +2656,7 @@ impl AgentCore {
   /// Create AgentCore that uses remote api_0g_storage (no local download needed).
   /// Register RaxcAnalyzerRemote as the tool instead of RaxcAnalyzer.
   pub fn new_remote(compute: OgComputeClient) -> Self {
-    println!("[*] Initializing RAXC Multi-Agent Framework (remote storage mode)...");
+    println!("\x1b[33m[*]\x1b[0m Initializing RAXC Multi-Agent Framework (remote storage mode)...");
     // Use new_empty() — no exploit DB download, but put() / load_from_chain() still work.
     // This enables Phase 0 (chain read) and Phase 7 (0G write) even in remote mode.
     Self {
@@ -2665,7 +2668,7 @@ impl AgentCore {
   
   /// Main analysis pipeline - returns complete AnalysisResult with markdown report
   pub async fn analyze(&self, contract: &str, contract_name: &str) -> Result<AnalysisResult> {
-    println!("\n[RAXC]           Starting autonomous security analysis...");
+    println!("\n\x1b[1;36m[RAXC]\x1b[0m           Phase 1: Starting autonomous security analysis...");
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
 
     // Phase 0: Load past audit context from on-chain ERC-7857 NFT — Stage 2 long-context memory.
@@ -2679,36 +2682,36 @@ impl AgentCore {
     let chain_memory = if let Some(ref storage) = self.memory.storage {
       match storage.load_from_chain(token_id).await {
         Ok(past) if !past.is_empty() => {
-          println!("[MemoryTool]     Loaded {} past audit(s) from 0G Storage", past.len());
+          println!("\x1b[35m[MemoryTool]\x1b[0m     Loaded {} past audit(s) from 0G Storage", past.len());
           past
         }
         Ok(_) => {
-          println!("[MemoryTool]     No past audits on chain yet (first run)");
+          println!("\x1b[35m[MemoryTool]\x1b[0m     No past audits on chain yet (first run)");
           vec![]
         }
         Err(e) => {
-          println!("[MemoryTool]     Chain memory skipped — {}", e);
+          println!("\x1b[35m[MemoryTool]\x1b[0m     Chain memory skipped — {}", e);
           vec![]
         }
       }
     } else {
-      println!("[MemoryTool]     Chain memory skipped (remote mode)");
+      println!("\x1b[35m[MemoryTool]\x1b[0m     Chain memory skipped (remote mode)");
       vec![]
     };
 
     // Phase 1: Execute all tools
-    println!("[RAXC]           Dispatching tools...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 2: Dispatching tools...");
     let raw_signals = self.tools.execute_all(contract).await;
-    println!("[RAXC]           Raw signals: {}", raw_signals.len());
+    println!("\x1b[36m[RAXC]\x1b[0m           Raw signals: {}", raw_signals.len());
     
     // Phase 1.5: Signal Normalization (Step 9.5)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Normalizing tool signals...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 3: Normalizing tool signals...");
     let tool_signals = SignalNormalizer::normalize(raw_signals.clone());
-    println!("[RAXC]           Normalized signals: {} (filtered from {})", tool_signals.len(), raw_signals.len());
+    println!("\x1b[36m[RAXC]\x1b[0m           Normalized signals: {} (filtered from {})", tool_signals.len(), raw_signals.len());
     
     if tool_signals.is_empty() {
-      println!("[!] No tool signals generated");
+      println!("\x1b[31m[!]\x1b[0m No tool signals generated");
       let decision = DecisionResult {
         vulnerability_found: false,
         primary_vulnerability: None,
@@ -2827,27 +2830,28 @@ impl AgentCore {
         markdown,
         filename,
         storage_root_hash: String::new(),
+        report_root_hash: String::new(),
       });
     }
     
     // Phase 2: Convert tool signals to agent votes (multi-agent reasoning)
-    println!("[RAXC]           Multi-agent reasoning layer...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 4: Multi-agent reasoning layer...");
     let agent_votes = self.create_agent_votes(&tool_signals);
     
     // Phase 3: Consensus decision
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Running consensus engine...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 5: Running consensus engine...");
     let decision = ConsensusEngine::decide(agent_votes);
     
     // Phase 4: Store to memory
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[MemoryTool]     Storing to memory layer...");
+    println!("\x1b[35m[MemoryTool]\x1b[0m     Storing to memory layer...");
     let contract_hash = format!("{:x}", md5::compute(contract));
     self.memory.store_analysis(&contract_hash, &decision).await?;
     
     // Phase 4.5: Intelligence + Scoring Layer (Step 9.8)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Calculating risk intelligence score...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 6: Calculating risk intelligence score...");
     let exploit_similarity = 0.75; // From RAG (loaded exploits similarity - extensible)
     let intelligence_report = RiskScoringEngine::generate_report(
       &decision, 
@@ -2855,13 +2859,13 @@ impl AgentCore {
       &raw_signals, 
       exploit_similarity
     );
-    println!("    ├─ Risk Score: {:.2}%", intelligence_report.risk_score * 100.0);
-    println!("    ├─ Exploitability: {:.2}%", intelligence_report.exploitability_score * 100.0);
-    println!("    └─ Classification: {}", intelligence_report.final_classification);
+    println!("\x1b[2m    ├─ Risk Score: {:.2}%\x1b[0m", intelligence_report.risk_score * 100.0);
+    println!("\x1b[2m    ├─ Exploitability: {:.2}%\x1b[0m", intelligence_report.exploitability_score * 100.0);
+    println!("\x1b[2m    └─ Classification: {}\x1b[0m", intelligence_report.final_classification);
     
     // Phase 4.75: Attack Simulation + Exploit Path Engine (Step 9.9)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Simulating attack execution path...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 7: Simulating attack execution path...");
     let attack_simulation = if decision.vulnerability_found {
       let vulnerability = decision.primary_vulnerability.as_deref().unwrap_or("Unknown");
       let evidence = tool_signals.first()
@@ -2874,10 +2878,10 @@ impl AgentCore {
         intelligence_report.exploitability_score,
       );
       
-      println!("    ├─ Execution Path: {} steps", simulation.execution_path.len());
-      println!("    ├─ State Transitions: {} tracked", simulation.state_transitions.len());
-      println!("    ├─ Attacker Type: {}", simulation.attacker_model.attacker_type);
-      println!("    └─ Exploit Status: {} ({:.0}% success probability)", 
+      println!("\x1b[2m    ├─ Execution Path: {} steps\x1b[0m", simulation.execution_path.len());
+      println!("\x1b[2m    ├─ State Transitions: {} tracked\x1b[0m", simulation.state_transitions.len());
+      println!("\x1b[2m    ├─ Attacker Type: {}\x1b[0m", simulation.attacker_model.attacker_type);
+      println!("\x1b[2m    └─ Exploit Status: {} ({:.0}% success probability)\x1b[0m", 
         simulation.exploit_verdict.status,
         simulation.exploit_verdict.success_probability * 100.0
       );
@@ -2933,13 +2937,13 @@ impl AgentCore {
     
     // Phase 4.8: Graph Construction Engine (Step 9.9)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Constructing deterministic attack graph...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 8: Constructing deterministic attack graph...");
     let attack_graph = if decision.vulnerability_found {
       let vulnerability = decision.primary_vulnerability.as_deref().unwrap_or("Unknown");
       let graph = GraphConstructionEngine::build(vulnerability);
-      println!("    ├─ Graph Nodes: {}", graph.nodes.len());
-      println!("    ├─ Graph Edges: {}", graph.edges.len());
-      println!("    └─ Root Node: {}", graph.root_node);
+      println!("\x1b[2m    ├─ Graph Nodes: {}\x1b[0m", graph.nodes.len());
+      println!("\x1b[2m    ├─ Graph Edges: {}\x1b[0m", graph.edges.len());
+      println!("\x1b[2m    └─ Root Node: {}\x1b[0m", graph.root_node);
       graph
     } else {
       GraphConstructionEngine {
@@ -2951,47 +2955,47 @@ impl AgentCore {
     
     // Phase 4.85: Consistency Verification (Step 9.9)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Verifying simulation consistency...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 9: Verifying simulation consistency...");
     let consistency_check = ConsistencyEngineVerifier::verify(
       &tool_signals,
       &attack_simulation,
       &attack_graph,
     );
-    println!("    ├─ Simulation Valid: {}", consistency_check.simulation_valid);
-    println!("    ├─ Graph Consistent: {}", consistency_check.graph_consistent);
-    println!("    ├─ State Correct: {}", consistency_check.state_correct);
-    println!("    ├─ Tool Conflict: {}", consistency_check.tool_conflict);
-    println!("    └─ Consistency Score: {:.2}%", consistency_check.consistency_score * 100.0);
+    println!("\x1b[2m    ├─ Simulation Valid: {}\x1b[0m", consistency_check.simulation_valid);
+    println!("\x1b[2m    ├─ Graph Consistent: {}\x1b[0m", consistency_check.graph_consistent);
+    println!("\x1b[2m    ├─ State Correct: {}\x1b[0m", consistency_check.state_correct);
+    println!("\x1b[2m    ├─ Tool Conflict: {}\x1b[0m", consistency_check.tool_conflict);
+    println!("\x1b[2m    └─ Consistency Score: {:.2}%\x1b[0m", consistency_check.consistency_score * 100.0);
     
     // Phase 4.9: Final Decision Engine (Step 9.9 - SINGLE AUTHORITY)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Making final decision (single authority)...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 10: Making final decision (single authority)...");
     let final_decision = FinalDecisionEngine::decide(
       &attack_simulation.confidence_engine,
       &intelligence_report,
       &consistency_check,
     );
-    println!("    ├─ Final Verdict: {}", final_decision.final_verdict);
-    println!("    ├─ Final Confidence: {:.2}%", final_decision.final_confidence * 100.0);
-    println!("    ├─ Final Attack Probability: {:.2}%", final_decision.final_attack_probability * 100.0);
-    println!("    └─ Final Risk Score: {:.2}%", final_decision.final_risk_score * 100.0);
+    println!("\x1b[2m    ├─ Final Verdict: {}\x1b[0m", final_decision.final_verdict);
+    println!("\x1b[2m    ├─ Final Confidence: {:.2}%\x1b[0m", final_decision.final_confidence * 100.0);
+    println!("\x1b[2m    ├─ Final Attack Probability: {:.2}%\x1b[0m", final_decision.final_attack_probability * 100.0);
+    println!("\x1b[2m    └─ Final Risk Score: {:.2}%\x1b[0m", final_decision.final_risk_score * 100.0);
     
     // Phase 4.95: Attestation Engine (Step 9.9 - VERIFIABLE PROOF)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Generating verifiable attestation...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 11: Generating verifiable attestation...");
     let attestation = AttestationEngine::attest(
       &final_decision,
       &attack_simulation.replay_info,
       &attack_graph,
       &attack_simulation,
     );
-    println!("    ├─ Attestation Replay ID: {}", attestation.replay_id);
-    println!("    ├─ Execution Trace Hash: {}", attestation.execution_trace_hash);
-    println!("    └─ Timestamp: {}", attestation.timestamp);
+    println!("\x1b[2m    ├─ Attestation Replay ID: {}\x1b[0m", attestation.replay_id);
+    println!("\x1b[2m    ├─ Execution Trace Hash: {}\x1b[0m", attestation.execution_trace_hash);
+    println!("\x1b[2m    └─ Timestamp: {}\x1b[0m", attestation.timestamp);
 
     // Phase 4.97: Reflection — 0G Compute self-critique
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[ReflectionTool] 0G Compute self-critique...");
+    println!("\x1b[35m[ReflectionTool]\x1b[0m 0G Compute self-critique...");
     let reflection_input = format!(
       "Vulnerability: {} | Risk: {} | Confidence: {:.0}% | Exploit Status: {} | Tools agreed: {}",
       decision.primary_vulnerability.as_deref().unwrap_or("None"),
@@ -3008,20 +3012,20 @@ impl AgentCore {
         let verdict = if sig.evidence.contains("CONFIRMED") { "CONFIRMED" }
           else if sig.evidence.contains("REJECTED") { "REJECTED" }
           else { "REDUCED" };
-        println!("    ├─ Verdict: {}", verdict);
-        println!("    └─ Refined Confidence: {:.0}%", sig.confidence * 100.0);
+        println!("\x1b[2m    ├─ Verdict: {}\x1b[0m", verdict);
+        println!("\x1b[2m    └─ Refined Confidence: {:.0}%\x1b[0m", sig.confidence * 100.0);
       }
-      Err(e) => println!("    └─ Reflection skipped: {}", e),
+      Err(e) => println!("\x1b[2m    └─ Reflection skipped: {}\x1b[0m", e),
     }
 
     // Phase 5: Generate LLM explanation (0G Compute)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[0G Compute]     Generating LLM explanation...");
+    println!("\x1b[94m[0G Compute]\x1b[0m     Generating LLM explanation...");
     let explanation = self.generate_explanation(&decision, &tool_signals, contract, &chain_memory).await?;
     
     // Phase 6: Generate markdown report (with intelligence metrics + attack simulation)
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    println!("[RAXC]           Generating audit report...");
+    println!("\x1b[1;36m[RAXC]\x1b[0m           Phase 12: Generating audit report...");
     let markdown = ReportEngine::to_markdown(&decision, &tool_signals, &raw_signals, &explanation, &intelligence_report, &attack_simulation, &attack_graph, &consistency_check, &final_decision, &attestation, contract_name);
     
     // Generate filename
@@ -3029,10 +3033,12 @@ impl AgentCore {
     let vuln = decision.primary_vulnerability.as_deref().unwrap_or("Unknown");
     let filename = format!("RAXC_{}_{}_{}_{:.0}pct.md", contract_name, vuln, timestamp, decision.confidence * 100.0);
 
-    // Phase 7: Store to 0G Storage — write JSON summary, get root hash for ERC-7857
-    // Store compact JSON (not full markdown) so Phase 0 can parse it back on next run.
-    let storage_root_hash = if let Some(ref storage) = self.memory.storage {
-      println!("[0G Storage]     Uploading audit summary...");
+    // Phase 7: Store to 0G Storage — write JSON summary + full markdown report
+    // JSON: compact summary for Phase 0 machine parsing
+    // Markdown: full human-readable report for permanent retrieval
+    let (storage_root_hash, report_root_hash) = if let Some(ref storage) = self.memory.storage {
+      // Upload 1: JSON summary
+      println!("\x1b[94m[0G Storage]\x1b[0m     Uploading audit summary (JSON)...");
       let summary_json = serde_json::json!({
         "vulnerability_type": decision.primary_vulnerability.as_deref().unwrap_or("Unknown"),
         "risk_level": decision.risk_level,
@@ -3040,11 +3046,17 @@ impl AgentCore {
         "report": filename,
         "contract": contract_name,
       }).to_string();
-      let root = storage.put(&format!("analysis:{}", filename), &summary_json).await.unwrap_or_default();
-      println!("[0G Storage]     Root hash: {}", root);
-      root
+      let json_root = storage.put(&format!("analysis:{}", filename), &summary_json).await.unwrap_or_default();
+      println!("\x1b[94m[0G Storage]\x1b[0m     ✓ JSON root hash:     {}", json_root);
+
+      // Upload 2: Full markdown report
+      println!("\x1b[94m[0G Storage]\x1b[0m     Uploading full report (markdown)...");
+      let md_root = storage.put(&format!("report:{}", filename), &markdown).await.unwrap_or_default();
+      println!("\x1b[94m[0G Storage]\x1b[0m     ✓ Report root hash:   {}", md_root);
+
+      (json_root, md_root)
     } else {
-      String::new()
+      (String::new(), String::new())
     };
 
     Ok(AnalysisResult {
@@ -3060,6 +3072,7 @@ impl AgentCore {
       markdown,
       filename,
       storage_root_hash,
+      report_root_hash,
     })
   }
   
@@ -3782,7 +3795,7 @@ Be critical and thorough."#,
     let start_time = std::time::Instant::now();
 
     // STEP 1: Load similar past analyses (adaptive memory)
-    println!("[*] Phase 1: Loading similar past analyses from 0G Storage...");
+    println!("[RAXC]           Phase 1: Loading similar past analyses from 0G Storage...");
     let past_analyses = self.load_similar_analyses(&contract).await?;
     
     // Track memory influence (WITH DEDUPLICATION)
@@ -3825,7 +3838,7 @@ Be critical and thorough."#,
     };
 
     // STEP 2: Execute ALL tools in parallel (get structured signals)
-    println!("[*] Phase 2: Executing {} tools in parallel...", self.tools.len());
+    println!("[RAXC]           Phase 2: Executing {} tools in parallel...", self.tools.len());
     let futures: Vec<_> = self.tools.iter()
       .map(|tool| {
         let contract_clone = contract.clone();
@@ -3852,7 +3865,7 @@ Be critical and thorough."#,
     }
 
     // STEP 3: DETERMINISTIC DECISION (NO LLM OVERRIDE)
-    println!("[*] Phase 3: Making deterministic decision from tool signals...");
+    println!("[RAXC]           Phase 3: Making deterministic decision from tool signals...");
     let mut decision = make_decision(&tool_signals);
     
     // 🔒 CRITICAL: Normalize severity based on vulnerability type
@@ -3917,7 +3930,7 @@ Be critical and thorough."#,
       confidence_breakdown.agreement_bonus * 100.0);
 
     // STEP 6: LLM EXPLANATION ONLY (cannot override decision)
-    println!("[*] Phase 4: LLM explanation layer (refinement only)...");
+    println!("[RAXC]           Phase 4: LLM explanation layer (refinement only)...");
     
     // ✅ FINAL FIX: Filter ONLY relevant signals (matching decision)
     let relevant_signals = Self::filter_relevant_signals(&tool_signals, &decision);
