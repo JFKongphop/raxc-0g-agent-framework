@@ -1,443 +1,591 @@
-# RAXC — AI-Powered DeFi Smart Contract Vulnerability Scanner
+# RAXCLAW — Autonomous Security Cognition on 0G
 
-[![Crates.io](https://img.shields.io/crates/v/raxc.svg)](https://crates.io/crates/raxc)
-[![Documentation](https://docs.rs/raxc/badge.svg)](https://docs.rs/raxc)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![0G Testnet](https://img.shields.io/badge/0G-Galileo%20Testnet-cyan)](https://evmrpc-testnet.0g.ai)
+[![ERC-8183](https://img.shields.io/badge/ERC--8183-Audit%20Task-green)](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c)
+[![ERC-7857](https://img.shields.io/badge/ERC--7857-Agent%20NFT-purple)](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53)
 
-> **R**etrieval **A**ugmented e**X**ploit **C**hecker  
-> Grant Application One-Pager | May 2026
+> *"Don't just ask an AI if your contract is safe — ask an AI that has seen 722 real hacks."*
 
-**RAXC** stands for:
-
-| Letter | Word | Meaning |
-|--------|------|---------|
-| **R** | Retrieval | Finds the most semantically similar real-world exploits from a vector database |
-| **A** | Augmented | Augments LLM analysis with grounded, evidence-based exploit context |
-| **X** | eXploit | Focused specifically on DeFi exploit patterns — not generic code review |
-| **C** | Checker | Fast, automated pre-deployment security check — not a full audit replacement |
-
-> *"Don't just ask an AI if your contract is safe — ask an AI that has seen 626 real hacks."*
+🌐 **Frontend:** [raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
+�️ **Remote Storage:** [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev)
 
 ---
 
-## 🧩 Hook
+## What is RAXCLAW?
 
-**RAXC**  
-**Autonomous Security Agent for Smart Contracts**  
-*Detect vulnerabilities before exploitation*
+RAXCLAW is an **autonomous smart contract security agent** that detects vulnerabilities by combining:
 
-Powered by **0G Storage** + **0G Compute** + **777 Real Exploits** from DeFiHackLabs
+- **722 real-world DeFi exploits** ($4.1B+ in total losses) indexed in a vector database build 0G Storage
+- **Multi-tool agentic reasoning** — reentrancy, flash loans, price manipulation, access control
+- **0G Storage** — decentralized, persistent exploit memory
+- **0G Compute** — decentralized LLM inference (qwen-2.5-7b-instruct)
+- **On-chain proof** — every audit result is stored as an ERC-8183 task + ERC-7857 NFT update
 
-🌐 **Live Demo:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
-🔌 **API:** [https://raxc-0g-agent-framework.fly.dev](https://raxc-0g-agent-framework.fly.dev)  
-📦 **Crate:** [crates.io/crates/raxc](https://crates.io/crates/raxc)
+The CLI (`raxclaw`) is the primary product. The frontend is a verification and replay interface.
 
-### Quick Install
+---
 
-```bash
-# Add to your Rust project
-cargo add raxc
+## Architecture
 
-# Or use in your Cargo.toml
-[dependencies]
-raxc = "0.1.0"
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        raxclaw CLI (Ink/React)                      │
+│   run │ analyze │ list │ show │ agent │ health                      │
+└─────────────────────────────────┬───────────────────────────────────┘
+                                  │ spawns
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│              skills/raxc-security/run.sh                            │
+│  (all env baked in — zero-config for users)                         │
+└─────────────────────────────────┬───────────────────────────────────┘
+                                  │ exec
+                                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│           backend/examples/agent_example_remote.rs                  │
+│                  RAXC Cognition Engine (Rust)                       │
+│                                                                     │
+│  1. load_env()              Load baked config                       │
+│  2. RemoteOgStorageClient   Query 722 exploits via HTTP (<10ms)     │
+│  3. build_og_compute()      0G Compute LLM endpoint                 │
+│  4. AgentCore::new()        Assemble multi-tool agent               │
+│     ├─ RaxcAnalyzerRemote   RAG semantic similarity                 │
+│     ├─ PatternDetectorTool  CEI / reentrancy patterns               │
+│     ├─ GasAnalyzerTool      Gas griefing vectors                    │
+│     ├─ FlashLoanTool        Flash loan attack paths                 │
+│     ├─ AccessControlTool    Owner / role checks                     │
+│     ├─ ReflectionTool       Self-review loop (max 2 iter)           │
+│     └─ MemoryTool           Persistent cognition memory             │
+│  5. LLM tool selection      Picks relevant tools per contract       │
+│  6. Parallel execution      All selected tools run concurrently     │
+│  7. Aggregation             Dedup + confidence breakdown            │
+│  8. Reflection              Validates + improves findings           │
+│  9. create_audit_task()     ERC-8183: mint on-chain audit task      │
+│  10. finalize_audit_task()  ERC-8183: write verdict + root hash     │
+│  11. update_agent_nft()     ERC-7857: push memory pointer to NFT    │
+│  12. og_storage upload      Store full report on 0G Storage         │
+└─────────────────────────────────┬───────────────────────────────────┘
+                                  │
+          ┌───────────────────────┴──────────────────────┐
+          ▼                                              ▼
+┌───────────────────────────────┐   ┌─────────────────────────────────┐
+│  0G Galileo                   │   │  0G Storage                     │
+│  Testnet                      │   │  (722 exploits + reports)       │
+│                               │   │                                 │
+│  ERC-8183                     │   │  RemoteOgStorage server         │
+│  RaxcAuditTask                │   │  (fly.dev — port 3001)          │
+│                               │   │                                 │
+│  ERC-7857                     │   │  Indexer RPC                    │
+│  RaxcAgentNFT                 │   │  turbo.0g.ai                    │
+└───────────────────────────────┘   └─────────────────────────────────┘
 ```
 
 ---
 
-## ⚠️ The Problem
+## On-Chain Contracts (0G Galileo Testnet — Chain ID 16602)
 
-**Smart contracts are deployed faster than they are audited.**  
-**Most tools miss real-world exploit patterns used in live attacks.**
+| Contract | Standard | Address |
+|----------|----------|---------|
+| **RaxcAuditTask8183** | ERC-8183 | [`0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c`](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c) |
+| **RaxcAgentNFT** | ERC-7857 | [`0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53`](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53) |
 
-DeFi protocols have lost over **$4.1 billion** to smart contract exploits — and the same vulnerability patterns keep repeating year after year.
-
-> These numbers are drawn directly from **474 real on-chain exploits** in the RAXC dataset (DeFiHackLabs). An additional 104 exploits with losses in ETH/BNB/tokens are not included, meaning the true total is significantly higher.
-
-| Year | Confirmed USD Lost | Trend |
-|------|--------------------|-------|
-| 2017 | $30,000,000 | Early days |
-| 2018 | $140,000,155 | — |
-| 2020 | $20,000,000 | — |
-| 2021 | $124,365,000 | ↑ DeFi summer |
-| 2022 | $205,809,017 | ↑ Bridge attacks |
-| 2023 | $443,980,241 | ↑↑ |
-| 2024 | $1,386,601,430 | ↑↑↑ |
-| 2025 | $1,777,671,071 | ↑↑↑↑ Worst year ever |
-| 2026 | $7,655,193 | (Jan–Apr only) |
-| **Total** | **$4,136,086,808** | |
-
-**Average loss per exploit: $11.2 million USD**
-
-The losses are accelerating every year. The same vulnerability types — reentrancy, price manipulation, flash loans, access control — appear across hundreds of incidents. These are **preventable** if caught before deployment.
-
-**The root cause:** Developers and auditors lack fast, evidence-based tools to catch vulnerabilities before deployment. Traditional static analysis tools generate too many false positives and miss novel attack patterns. LLMs alone hallucinate and lack grounding in real exploit data.
+**ERC-8183** — Audit task lifecycle: `createTask → finalizeTask(verdict, rootHash, replayId)`  
+**ERC-7857** — Intelligent agent NFT: on-chain memory pointer updated after every audit
 
 ---
 
-## 🧠 Solution
+## 0G Integration — Technical Deep Dive
 
-**RAXC is an autonomous security agent that detects smart contract vulnerabilities by combining real exploit pattern retrieval with agentic reasoning.**
-
-It builds a continuously evolving exploit memory and simulates attacker behavior to uncover vulnerabilities before deployment.
-
-**Powered by 0G infrastructure**, RAXC stores exploit knowledge in decentralized storage and uses compute layers to run autonomous security analysis at scale.
-
-### Why RAXC is Different
-
-Unlike traditional tools that rely on static rules or generic LLMs that hallucinate, RAXC:
-
-**🧬 Autonomous Agent Architecture**
-- **Multi-phase reasoning** — Tool selection → Execution → Aggregation → Reflection
-- **Self-improving** — Reflection loop (max 2 iterations) validates findings and fills gaps
-- **Explainable decisions** — Every vulnerability report includes primary signals, supporting evidence, and ignored patterns
-- **Confidence scoring** — Tool-by-tool breakdown shows exactly why the agent is confident
-
-**🗄️ Continuously Evolving Exploit Memory**
-- **777 real exploits** indexed from DeFiHackLabs (626) and DeFiVulnLabs (151)
-- **$4.1B+ in losses** analyzed across 474 on-chain exploits with USD-denominated damages
-- **Semantic retrieval** using 1536-dimensional embeddings (OpenAI text-embedding-3-small)
-- **Persistent memory** on 0G Storage — learns from past analyses and adapts patterns over time
-- **Vector similarity search** finds exploits semantically similar to the contract under analysis
-
-**🎯 Simulates Attacker Behavior**
-- **Pattern detection** — Checks for CEI violations, reentrancy, flash loan attacks, price manipulation
-- **Attack path simulation** — Agent tests potential exploit vectors before returning findings
-- **RAG-based context** — Every analysis is grounded in real-world exploit patterns
-- **Novel vulnerability detection** — LLM reasoning identifies attack vectors not in static rule sets
-
-**⚡ Powered by 0G Decentralized Infrastructure**
-- **0G Storage** — Decentralized data availability layer stores the entire exploit database
-  - 777 exploit files with contract code, attack transactions, and root cause analysis
-  - Persistent memory system tracks historical analyses and pattern adaptations
-  - Immutable, censorship-resistant knowledge base
-  
-- **0G Compute** — Decentralized LLM inference layer for autonomous reasoning
-  - **All analysis and reasoning** — Tool selection, reflection, aggregation, and vulnerability detection
-  - Tool selection: Decides which security tools to run based on contract patterns
-  - Reflection: Reviews its own output to validate findings and improve quality
-  - Aggregation: Deduplicates findings and calculates confidence scores
-  - Model: qwen/qwen-2.5-7b-instruct (7B parameter instruction-tuned LLM)
-  
-- **OpenAI** — Used exclusively for semantic similarity embeddings
-  - Generates 1536-dimensional vectors for exploit pattern matching
-  - **Note:** OpenAI is only used for embeddings, not LLM reasoning (0G Compute testnet does not yet support embedding models)
-
-**🔧 Extensible & Production-Ready**
-- **Modular tool system** — Easily add custom security analyzers (gas, formal verification, fuzzing)
-- **Parallel execution** — Multiple tools run concurrently for speed
-- **Structured output** — 13-field `AgentOutput` with risk level, confidence, reasoning, and similar exploits
-- **API-first design** — Deploy as a service for CI/CD integration or on-demand analysis
+RAXCLAW uses three distinct 0G primitives: **0G Storage KV** (exploit database + audit reports), **0G Compute** (decentralized LLM inference), and **0G Galileo EVM** (on-chain proof). Here is exactly how each one is wired in.
 
 ---
 
-## 🧬 How It Works
+### 1. 0G Storage — Exploit Database (Indexing Phase)
 
-**1. Retrieval** → Fetch real exploit patterns  
-   - Semantic search across 777 exploits from DeFiHackLabs
-   - Find similar vulnerabilities using OpenAI embeddings (1536-dim vectors)
-   - Stored on 0G Storage for decentralized, persistent memory
-
-**2. Reasoning** → AI analyzes contract logic  
-   - LLM-based tool selection (RaxcAnalyzer, PatternDetector, GasAnalyzer)
-   - Intelligent aggregation with deduplication
-   - Confidence breakdown showing tool contributions
-
-**3. Simulation** → Agent tests attack paths  
-   - Reflection loop (max 2 iterations) for self-improvement
-   - Validates findings against known exploit patterns
-   - Identifies CEI violations, reentrancy, flash loan attacks
-
-**4. Output** → Vulnerability report  
-   - Risk level: Critical, High, Medium, Low, None
-   - Confidence score (0-100%)
-   - Similar exploits + reasoning
-   - Markdown report with actionable recommendations
-
----
-
-## ⚙️ Architecture (0G Aligned)
-
-**RAG Exploit Database + Agent Framework**
+`indexer-ts/indexer_protocol_0g.ts` runs once to populate the exploit database:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    RAXC Intelligent Agent                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                               │
-│  1. Load Adaptive Memory (0G Storage)                       │
-│     ↓                                                         │
-│  2. LLM Tool Selection ──→ ToolSelection                    │
-│     ↓                       (selected_tools, reasoning)      │
-│  3. Execute Selected Tools (parallel)                        │
-│     ↓                                                         │
-│  4. Intelligent Aggregation ──→ Structured findings          │
-│     ↓                           (deduplication, attribution) │
-│  5. Reflection Loop (max 2)                                  │
-│     ↓                                                         │
-│  6. Confidence Breakdown ──→ ConfidenceBreakdown            │
-│     ↓                        (tool contributions + bonus)    │
-│  7. Extract Decision ──→ AgentDecision                      │
-│     ↓                    (primary signal, evidence, ignored) │
-│  8. Return AgentOutput (13 fields)                           │
-│                                                               │
-└─────────────────────────────────────────────────────────────┘
+datasets-protocol-exploit/src/   ← 722 Solidity exploit files
+         │
+         │  indexer_protocol_0g.ts
+         │  1. Read each .sol file
+         │  2. Generate 1536-dim embedding via OpenAI text-embedding-3-small
+         │  3. Serialize as JSON → Base64-encode
+         │  4. Upload to 0G Storage KV via @0gfoundation/0g-ts-sdk
+         │     └─ Indexer + Batcher → getFlowContract(0G Galileo RPC)
+         │     └─ Stream ID: "defi_protocols"
+         │     └─ Each entry: { root_hash, stream_id, key }
+         │  5. Save root_hash + stream_id + key → manifest.json
+         │
+         ▼
+  0G Storage KV (indexer-storage-testnet-turbo.0g.ai)
 ```
 
-**Key Components:**
+**Key SDK call:**
+```ts
+import { Indexer, Batcher, getFlowContract } from '@0gfoundation/0g-ts-sdk';
 
-- **On-chain contract analysis** — Ethers-rs for blockchain interaction
-- **Off-chain reasoning engine** — 0G Compute for LLM inference (qwen-2.5-7b-instruct)
-- **Modular security skills** — Extensible tool system (RAG, pattern detection, gas analysis)
-- **Persistent memory** — 0G Storage for decentralized RAG database (777 exploits)
+const indexer = new Indexer(INDEXER_RPC);
+const flow = getFlowContract(BLOCKCHAIN_RPC, signer);
+// upload: Batcher.appendFile() → indexer.upload()
+```
 
 ---
 
-## 🚀 Impact
+### 2. 0G Storage — Remote Query Server
 
-**From static scanning → autonomous security intelligence**  
-**Prevent exploits before deployment.**
+Downloading 722 exploits every run takes 2–3 minutes. Instead, `api_0g_storage` (Axum HTTP server) pre-loads all exploits once at startup and serves vector queries over HTTP:
 
-### Measurable Impact
+```
+Startup (once):
+  build_og_storage()
+    └─ reads manifest.json  →  list of { root_hash, stream_id, key }
+    └─ for each entry (10 concurrent):
+         0g-cli download --indexer <INDEXER_RPC> --root <root_hash> --file /tmp/*.bin
+         parse binary: find stream_id → find key → extract base64 → decode JSON
+         → LoadedExploit { embedding: Vec<f64>, metadata, code_snippet }
+    └─ all 722 exploits loaded into Vec<LoadedExploit> in RAM
 
-| Metric | Value |
-|--------|-------|
-| **Exploits Loaded** | 777 (DeFiHackLabs + DeFiVulnLabs) |
-| **Analysis Time** | 4-13s per contract |
-| **Confidence Scores** | 70-95% (tool-based breakdown) |
-| **LLM Efficiency** | 1500-3000 tokens per analysis |
-| **False Positives** | Reduced via intelligent tool selection |
-| **Detection Rate** | Catches reentrancy, flash loans, price manipulation |
+Runtime (per query, <10ms):
+  POST /query { "embedding": [1536 floats], "top_k": 5 }
+    └─ cosine_similarity(query_vec, exploit_vec) for all 722
+    └─ return top-K sorted by score
+```
 
-### Real-World Use Cases
+The server is deployed to fly.dev: `https://raxc-0g-agent-framework-j43hng.fly.dev`
 
-✅ **Pre-deployment checks** — Fast security scan before mainnet launch  
-✅ **Audit preparation** — Identify vulnerabilities before formal audit  
-✅ **Continuous monitoring** — Integrate into CI/CD pipelines  
-✅ **Educational tool** — Learn from real exploits with context  
-✅ **DAO governance** — Verify proposals before execution
+**Rust client** (`RemoteOgStorageClient`):
+```rust
+let remote = RemoteOgStorageClient::new("https://raxc-0g-agent-framework-j43hng.fly.dev");
+let loaded = remote.health().await?;   // GET /health → { "loaded": 722 }
+// inside RaxcAnalyzerRemote tool:
+// remote.query(embedding, top_k).await?  →  Vec<SimilarExploit>
+```
 
 ---
 
-## 🌐 Live Demo
+### 3. 0G Compute — Decentralized LLM Inference
 
-**Try RAXC now without any setup!**
+`og_compute.rs` wraps the 0G Compute network behind an OpenAI-compatible chat completions interface:
 
-🌐 **Web Interface:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
-🔌 **API Endpoint:** `https://raxc-0g-agent-framework.fly.dev`
+```rust
+// Build client
+let compute = OgComputeClient::with_api_key(
+    endpoint,          // https://compute-network-6.integratenetwork.work
+    "qwen-2.5-7b-instruct".to_string(),
+    api_key,
+);
 
-### Quick API Test
-
-```bash
-# Analyze a smart contract via API
-curl -X POST https://raxc-0g-agent-framework.fly.dev/analyze \
-  -H "Content-Type: application/json" \
-  -d '{
-    "contract": "contract VulnerableVault { ... }",
-    "name": "VulnerableVault"
-  }'
+// Call (used for tool selection, report generation, reflection)
+let result = compute.infer(prompt).await?;
+// POST /chat/completions  { model, messages, max_tokens: 8192 }
+// Authorization: Bearer <OG_COMPUTE_API_KEY>
 ```
 
-### Deployed Smart Contracts (0G Galileo Testnet)
-
-| Contract | Address | Network |
-|----------|---------|---------|
-| **RAXC Vault** | `0x7Ad0e4B636C63CdfF4e73895855E0a3Fe087C16c` | 0G Testnet (Chain ID: 16602) |
-| **USDC** | `0xd6A26c46B3c840878e34e5a8746DD0d7af13c9De` | 0G Testnet (Chain ID: 16602) |
-
-**Network Details:**
-- **RPC URL:** `https://evmrpc-testnet.0g.ai`
-- **Chain ID:** `16602`
-- **Explorer:** View contracts on 0G Galileo Testnet explorer
-
-**Full Web Interface:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app) — Analyze contracts with wallet integration
+**Used in 3 places:**
+| Where | What it does |
+|-------|-------------|
+| `AgentCore::analyze()` | Tool selection — picks which tools to run for this contract |
+| `RaxcAnalyzerRemote` | RAG report generation — explains the most similar exploit |
+| `ReflectionTool` | Self-critique — validates all findings, fills reasoning gaps |
 
 ---
 
-## 🚀 Quick Start (60 Seconds)
+### 4. 0G Galileo EVM — On-Chain Proof (ERC-8183 + ERC-7857)
 
-### Prerequisites
-```bash
-# Set environment variables
-export OPENAI_API_KEY="sk-your-key-here"  # Only for embeddings/similarity
-export USE_OPENAI_EMBEDDING="true"        # Enable semantic search
-export OG_STORAGE_RPC="https://rpc-storage-testnet.0g.ai"
-export OG_COMPUTE_ENDPOINT="https://api.compute.testnet.openlayer.network"  # All LLM reasoning
+`erc8183.rs` writes to the deployed contracts on 0G Galileo (chain ID 16602) using raw ABI encoding via `ethers-rs`:
 
-# Create memory directory
-mkdir -p /tmp/raxc_memory
-```
+```rust
+// Step 1 — register the job (before analysis)
+let task_id = create_audit_task("DeFiVault").await?;
+// → sends createAuditTask(string) tx to RaxcAuditTask8183
+// → reads AuditTaskCreated event → returns taskId
 
-> **Important:** OpenAI is only used for generating embeddings to find similar exploits. All vulnerability analysis, reasoning, and decision-making is performed by 0G Compute (qwen-2.5-7b). The testnet does not yet support embedding models on 0G Compute.
-
-### Option 1: Use as a Library
-
-```bash
-# Add to your project
-cargo add raxc
+// Step 2 — commit the proof (after analysis + NFT update)
+finalize_audit_task(task_id, verdict, root_hash, replay_id).await?;
+// → sends finalizeAuditTask(uint256, string, bytes32, string) tx
+// → root_hash = keccak256 of the 0G Storage upload root
 ```
 
 ```rust
-use raxc::{Agent, build_og_storage, build_og_compute};
-
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
-    // Initialize 0G infrastructure
-    let storage = build_og_storage()?;
-    let compute = build_og_compute()?;
-    
-    // Create agent
-    let mut agent = Agent::new(storage, compute);
-    
-    // Analyze your contract
-    let contract = r#"
-        contract VulnerableVault {
-            mapping(address => uint) public balances;
-            function withdraw(uint amount) public {
-                require(balances[msg.sender] >= amount);
-                (bool success, ) = msg.sender.call{value: amount}("");
-                balances[msg.sender] -= amount;
-            }
-        }
-    "#;
-    
-    let result = agent.analyze(contract, "VulnerableVault").await?;
-    println!("Vulnerability: {}", result.vulnerability_found);
-    println!("Risk Level: {}", result.risk_level);
-    println!("Confidence: {}%", result.confidence);
-    
-    Ok(())
-}
+// ERC-7857 — update agent NFT memory pointer
+update_agent_nft(nft_address, token_id, memory_root_hash).await?;
+// → sends updateMemory(uint256, bytes32) tx to RaxcAgentNFT
 ```
 
-### Option 2: Run Example
+**No ethers-rs ABI macro needed** — calls are hand-encoded:
+```rust
+let selector = &keccak256(b"createAuditTask(string)")[..4];
+let params = abi::encode(&[Token::String(contract_name.to_string())]);
+let calldata = [selector, &params].concat();
+```
+
+---
+
+### 5. 0G Storage — Audit Report Upload
+
+After finalizing the ERC-8183 task, the full markdown report is uploaded to 0G Storage:
+
+```
+agent_example_remote.rs
+  └─ analysis complete
+  └─ og_storage.upload_report(markdown, filename)
+       └─ 0g-cli upload --indexer <INDEXER_RPC> --file <report.md>
+       └─ returns root_hash (bytes32)
+  └─ root_hash → finalize_audit_task(..., root_hash, ...)
+       └─ stored on-chain in ERC-8183 task record
+       └─ frontend reads root_hash → reconstructs 0G Storage download link
+```
+
+---
+
+### Full 0G Data Flow (One Audit)
+
+```
+[User: ./dist/raxclaw run]
+        │
+        ▼
+run.sh → agent_example_remote (Rust)
+        │
+        ├─ GET  fly.dev/health                ← 0G Storage: verify 722 exploits loaded
+        ├─ POST 0G Galileo: createAuditTask   ← ERC-8183: register job on-chain
+        ├─ POST 0G Compute: tool selection    ← LLM picks tools for this contract
+        ├─ POST fly.dev/query (embedding)     ← 0G Storage: top-5 similar exploits
+        ├─ POST 0G Compute: RAG explanation   ← LLM explains exploit match
+        ├─ POST 0G Compute: reflection        ← LLM self-critique of findings
+        ├─ 0g-cli upload report.md            ← 0G Storage: save full audit report
+        ├─ POST 0G Galileo: updateMemory      ← ERC-7857: NFT memory pointer updated
+        └─ POST 0G Galileo: finalizeAuditTask ← ERC-8183: verdict + root_hash on-chain
+```
+
+---
+
+## Repo Structure
+
+```
+raxc-0g-agent-framework/
+├── raxclaw.tsx                       # CLI entry — Ink/React UI (TypeScript)
+├── build.cjs                         # esbuild → dist/raxclaw.mjs + dist/raxclaw
+├── dist/
+│   ├── raxclaw                       # Executable shell wrapper (no tsx needed)
+│   └── raxclaw.mjs                   # Self-contained ESM bundle (1.7MB)
+│
+├── skills/raxc-security/
+│   └── run.sh                        # Zero-config runner (all env baked in)
+│
+├── backend/                          # Rust cognition engine
+│   ├── src/
+│   │   ├── lib.rs                    # Core: AgentCore, tools, OG infra
+│   │   ├── agent.rs                  # Multi-tool agent + ERC-8183/7857 calls
+│   │   ├── erc8183.rs                # ERC-8183 on-chain task management
+│   │   ├── og_storage.rs             # 0G Storage client (exploit DB)
+│   │   ├── og_compute.rs             # 0G Compute LLM client
+│   │   ├── tools.rs                  # Security analysis tools
+│   │   └── api.rs                    # REST API server (Axum)
+│   └── examples/
+│       └── agent_example_remote.rs   # Main entrypoint (spawned by run.sh)
+│
+├── frontend/                         # Next.js 14 verification UI
+│   ├── app/page.tsx
+│   └── components/
+│       ├── ArchFlow.tsx              # 6-step pipeline visualization
+│       ├── AuditExplorer.tsx         # Browse on-chain audit tasks
+│       ├── MemorySection.tsx         # Live cognition count from chain
+│       └── DownloadSection.tsx
+│
+├── contracts/                        # Foundry smart contracts
+│   └── src/
+│       ├── RaxcAuditTask8183.sol
+│       └── RaxcAgentNFT.sol
+│
+├── datasets-protocol-exploit/        # 722 real-world exploit dataset
+├── indexer-ts/                       # 0G Storage indexer (TypeScript)
+└── .env.local                        # Override template (all vars, empty values)
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- **Node.js 18+**
+- **Rust + cargo** — [rustup.rs](https://rustup.rs)
+- **pnpm** — `npm install -g pnpm`
+
+### Install & Run
+
 ```bash
-cd backend
-cargo run --example agent_example_openai
+# 1. Clone
+git clone https://github.com/JFKongphop/raxc-0g-agent-framework
+cd raxc-0g-agent-framework
+
+# 2. Build — one-time (JS CLI + Rust cognition engine)
+pnpm install && pnpm build:all
+
+# 3. Run — no .env setup required, everything is baked in
+./dist/raxclaw run
 ```
 
-**Expected Output:**
-```
-[*] Running RAXC Intelligent Agent Framework...
-[✓] Loaded 777 exploits from DeFiHackLabs
-
-[*] Using LLM for intelligent tool selection...
-[✓] Selected 2 tools: RaxcAnalyzer, PatternDetectorTool
-[i] Selection reasoning: Contract has external calls, prioritizing reentrancy checks
-
-[*] Phase 1: Executing 2 selected tools in parallel...
-[*] Phase 2: Intelligent aggregation with deduplication...
-[*] Phase 3: Reflection loop (max 2 iterations)...
-[✓] Reflection: Analysis is complete and confident
-[*] Confidence breakdown: 82.50% (from 2 tools)
-
-╔════════════════════════════════════════════════════════════════════╗
-║                  ADVANCED AGENT OUTPUT                             ║
-╚════════════════════════════════════════════════════════════════════╝
-Vulnerability Found:  true
-Risk Level:          High
-Vulnerability Type:  Reentrancy
-Confidence:          82%
-
-[TOOL SELECTION]
-Selected Tools: RaxcAnalyzer, PatternDetectorTool
-Reasoning: Contract has external calls, prioritizing reentrancy checks
-
-[CONFIDENCE BREAKDOWN]
-  • RaxcAnalyzer: 85.0%
-  • PatternDetectorTool: 80.0%
-  • Agreement Bonus: +5.0%
-  • Final Confidence: 82.5%
-
-[AGENT DECISION]
-Primary Signal: RaxcAnalyzer detected vulnerability via RAG semantic similarity
-Supporting Evidence:
-  • PatternDetectorTool confirmed CEI pattern violation
-```
+> All API keys, contract addresses, and RPC endpoints are baked into `skills/raxc-security/run.sh` for zero-config dev/demo use. To use your own keys, create a `.env` file (see [`.env.local`](.env.local) for the full variable list).
 
 ---
 
-## 📦 Tech Stack
+## CLI Commands
 
-- **Language:** Rust 2021 edition
-- **Async Runtime:** Tokio
-- **HTTP:** Reqwest + Axum
-- **Blockchain:** Ethers-rs
-- **Embeddings:** OpenAI text-embedding-3-small (1536 dims) — *Similarity search only*
-- **LLM Inference:** 0G Compute (qwen/qwen-2.5-7b-instruct) — *All analysis and reasoning*
-- **Storage:** 0G Storage (decentralized RAG memory)
-
-> **Note:** 0G Compute handles all vulnerability analysis, reasoning, tool selection, and reflection. OpenAI is only used for generating embeddings to find similar exploits, as the 0G Compute testnet does not yet support embedding models.
-
----
-
-## � Future Plans
-
-**Public Exploit Database API**
-
-We plan to separate the 0G Storage exploit database into a publicly accessible service that anyone can use via HTTP requests.
-
-### Planned Features
-
-🌐 **HTTP API Access**
-- Public endpoint for querying the 777-exploit database
-- RESTful API for semantic similarity search
-- No setup required — just send HTTP requests
-
-📊 **Query Capabilities**
-- Search by vulnerability type (reentrancy, flash loan, price manipulation, etc.)
-- Semantic similarity search (find exploits similar to your contract)
-- Filter by year, loss amount, attack vector, or protocol
-- Get exploit details: contract code, attack transaction, root cause analysis
-
-🔓 **Open Access**
-- Free public access to the exploit knowledge base
-- No authentication required for read-only queries
-- Community contributions welcome (submit new exploits)
-
-🚀 **Use Cases**
-- Security researchers analyzing patterns
-- Developers checking if their code matches known exploits
-- Auditors searching for similar vulnerabilities
-- Educational institutions teaching smart contract security
-- Other security tools integrating RAXC's exploit database
-
-**Example Future API Usage:**
 ```bash
-# Search for reentrancy exploits
-curl https://api.raxc.0g.ai/exploits?type=reentrancy
-
-# Find exploits similar to a contract
-curl -X POST https://api.raxc.0g.ai/search/similar \
-  -H "Content-Type: application/json" \
-  -d '{"contract_code": "contract VulnerableVault { ... }"}'
-
-# Get specific exploit details
-curl https://api.raxc.0g.ai/exploits/2024-001
+./dist/raxclaw run                          # Full audit — default demo contract
+./dist/raxclaw run --file MyContract.sol    # Audit a specific Solidity file
+./dist/raxclaw list                         # List all saved audit reports
+./dist/raxclaw show <name|index>            # Print a report to the terminal
+./dist/raxclaw analyze MyContract.sol       # Analyze via OpenClaw orchestration
+./dist/raxclaw agent --message "..."        # Pass-through to OpenClaw agent CLI
+./dist/raxclaw health                       # Check remote agent server status
 ```
 
-This will enable the entire Web3 security ecosystem to benefit from RAXC's curated, decentralized exploit memory — powered by 0G Storage.
+---
+
+## Build Scripts
+
+| Command | What it does |
+|---------|-------------|
+| `pnpm build` | JS CLI only → `dist/raxclaw.mjs` + `dist/raxclaw` |
+| `pnpm build:rust` | Rust binary → `backend/target/release/examples/agent_example_remote` |
+| `pnpm build:all` | Both — recommended before first run |
+| `pnpm dev` | Run CLI via `tsx` (no build needed, requires node_modules) |
+
+After `pnpm build:rust`, `./dist/raxclaw run` uses the prebuilt binary — no `cargo run` compile delay on each invocation.
 
 ---
 
-## �🙏 Credits
+## Agent Intelligence — Factors & Scoring
 
-Built on the **0G Foundation:**
-- **0G Storage** — Decentralized data availability for RAG memory
-- **0G Compute** — Decentralized LLM inference for intelligent agent
+### 7 Security Tools (Registered at Runtime)
 
-Exploit datasets from:
-- **DeFiHackLabs** — Real-world DeFi exploit collection (721 exploits)
-- **DeFiVulnLabs** — Vulnerability pattern library (56 patterns)
+| # | Tool | Trust Weight | What It Detects |
+|---|------|-------------|-----------------|
+| 1 | `RaxcAnalyzerRemote` | **1.0** (highest) | RAG: semantic match against 777 real exploits via 0G Storage |
+| 2 | `PatternDetectorTool` | **0.8** | CEI violations, reentrancy, unchecked `.call` return values |
+| 3 | `FlashLoanTool` | **0.7** | Flash loan vectors, spot price oracles (`getReserves()`), callback exploits |
+| 4 | `AccessControlTool` | **0.7** | Missing `onlyOwner`, unguarded `initialize()`, unprotected admin functions |
+| 5 | `ReflectionTool` | **0.7** | LLM self-critique — validates all findings, fills reasoning gaps |
+| 6 | `MemoryTool` | **0.7** | Loads historical cognition from `/tmp/raxc_memory/` via 0G Storage |
+| 7 | `GasAnalyzerTool` | **0.2** (penalized) | `array.length` in loops, unbounded loops, DoS gas griefing |
+
+> Trust weights are applied via `ToolTrustWeighting` — higher trust = higher contribution to final confidence.
 
 ---
 
-## 📄 License
+### 13-Field Agent Output (`AgentOutput`)
 
-MIT License — see LICENSE file
+Every analysis produces a structured 13-field result:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `vulnerability_found` | `bool` | Whether any vulnerability was detected |
+| `risk_level` | `String` | `Critical` / `High` / `Medium` / `Low` / `None` |
+| `vulnerability_type` | `String` | Primary type: Reentrancy, Flash Loan, Access Control, etc. |
+| `confidence` | `f64` | 0–100% — weighted aggregate across all tools |
+| `markdown` | `String` | Full audit report (saved to `backend/reports/`) |
+| `reasoning` | `String` | LLM explanation of the primary finding |
+| `similar_exploits` | `Vec<String>` | Top-K most similar real exploits from the 777 dataset |
+| `filename` | `String` | Report filename with timestamp and confidence score |
+| `tool_selection` | `ToolSelection` | Which tools were selected + LLM reasoning |
+| `confidence_breakdown` | `ConfidenceBreakdown` | Per-tool scores + agreement bonus |
+| `memory_influence` | `MemoryInfluence` | Past patterns + decisions influenced by memory |
+| `agent_decision` | `AgentDecision` | Primary signal, supporting evidence, ignored signals |
+| `reflection_iterations` | `u8` | Number of self-review loops performed (0–2) |
 
 ---
 
-**🚀 The RAXC Intelligent Agent Framework is production-ready for advanced smart contract security analysis!**
+### 4-Factor Risk Scoring Formula (`RiskScoringEngine`)
 
-Get started: `cargo run --example agent_example_openai`
+```
+RiskScore = (SeverityWeight × 0.35)
+          + (ConfidenceScore × 0.25)
+          + (ToolAgreement  × 0.20)
+          + (ExploitSimilarity × 0.20)
+```
+
+**Severity weights:**
+
+| Severity | Weight |
+|----------|--------|
+| Critical | 1.00 |
+| High | 0.75 |
+| Medium | 0.50 |
+| Low | 0.25 |
+
+**Agreement bonus:** +0.05 if `tool_agreement ≥ 1.0` AND `severity = High` AND `confidence ≥ 85%`
+
+**Final classification:**
+
+| RiskScore | Classification |
+|-----------|---------------|
+| ≥ 0.75 | `CRITICAL RISK` |
+| ≥ 0.60 | `HIGH RISK` |
+| ≥ 0.40 | `MEDIUM RISK` |
+| < 0.40 | `LOW RISK` |
+
+---
+
+### Exploitability Estimator
+
+A separate `ExploitabilityEstimator` scores real-world attack feasibility (0.0–1.0):
+
+| Factor | Score |
+|--------|-------|
+| External call before state update / callback present | +0.40 |
+| ETH transfer (`.call{value}`, `.send`, `.transfer`) | +0.20 |
+| Recursive entry possible (reentrancy pattern) | +0.20 |
+| Historical exploit similarity (from RAG) | +0.00–0.20 |
+
+---
+
+### Deterministic Severity Locks (`SeverityLock`)
+
+Vulnerability type → severity is deterministic (not LLM-decided):
+
+| Vulnerability | Locked Severity |
+|---------------|----------------|
+| Reentrancy | `High` |
+| Access Control / Authorization | `Critical` |
+| Flash Loan | `High` |
+| Price Oracle | `High` |
+| Overflow / Underflow | `Medium-High` |
+| Front-running | `Medium` |
+| DoS / Gas Griefing | `Medium` |
+| Timestamp dependence | `Low-Medium` |
+
+---
+
+### Attack Simulation Engine
+
+Beyond detection, the agent builds a full **deterministic attack simulation** for each finding:
+
+- **`ExploitGraph`** — directed graph of the attack flow (nodes + edges)
+- **`AttackSimulation`** — step-by-step execution path with state transitions
+- **`AttackerPersona`** — classifies attacker as `MEVBot`, `ProtocolHacker`, or `ContractExploiter`
+- **`AttackerCapabilities`** — required skill level and resources
+- **`ExploitVerdict`** — feasibility status + success probability
+- **`DeterministicReplay`** — reproducible replay ID + seed for audit trail
+- **`ConfidenceEngine`** — single source of truth for final confidence (no LLM override)
+- **`StateProof`** — before/after state transitions during simulated exploit
+- **`SeverityProof`** — justification chain for severity classification
+
+---
+
+### Signal Normalizer (Production Hardening)
+
+Before aggregation, all tool outputs pass through `SignalNormalizer`:
+
+- Drops signals with empty vulnerability field
+- Drops signals with confidence < 5%
+- Drops signals with empty evidence
+- Locks confidence to 2 decimal places
+- Strips markdown, emojis, non-ASCII from evidence
+- Truncates evidence to max 5 lines / 400 characters
+
+---
+
+## Agent Pipeline
+
+| Step | Component | What Happens |
+|------|-----------|-------------|
+| 1 | **Contract Input** | `RAXC_CONTRACT_FILE`, `RAXC_CONTRACT_CODE`, or built-in demo |
+| 2 | **MemoryTool** | Load persistent cognition history from 0G Storage |
+| 3 | **RaxcAnalyzerRemote** | RAG: semantic similarity search across 722 exploits |
+| 4 | **LLM Tool Selection** | 0G Compute picks which tools to run per contract |
+| 5 | **Parallel Execution** | Pattern detection, gas, flash loan, access control — concurrent |
+| 6 | **Aggregation** | Deduplicate findings, calculate per-tool confidence scores |
+| 7 | **ReflectionTool** | LLM validates its output, fills gaps (max 2 iterations) |
+| 8 | **ERC-8183** | `createAuditTask` → analysis → `finalizeAuditTask(verdict, rootHash)` |
+| 9 | **ERC-7857** | Agent NFT memory pointer updated with new cognition trace |
+| 10 | **0G Storage** | Full markdown report uploaded, root hash stored on-chain |
+
+---
+
+## Security Tools
+
+| Tool | Detects |
+|------|---------|
+| `RaxcAnalyzerRemote` | Semantic similarity to 722 real exploits (RAG) |
+| `PatternDetectorTool` | CEI violations, reentrancy, unchecked external calls |
+| `FlashLoanTool` | Flash loan attack vectors, price oracle manipulation |
+| `GasAnalyzerTool` | Gas griefing, unbounded loops, DoS patterns |
+| `AccessControlTool` | Missing owner checks, unprotected admin functions |
+| `ReflectionTool` | Self-review: validates and improves all findings |
+| `MemoryTool` | Historical analyses from persistent 0G cognition memory |
+
+---
+
+## Exploit Dataset
+
+| Source | Count | Coverage |
+|--------|-------|----------|
+| DeFiHackLabs | 626 | Real on-chain incidents with tx hashes and root cause |
+| DeFiVulnLabs | 151 | Vulnerability pattern library |
+| **Total** | **722** | **$4.1B+ in documented losses** |
+
+Indexed with OpenAI `text-embedding-3-small` (1536-dim vectors) and served via the remote storage server on fly.dev.
+
+---
+
+## Environment Variables
+
+All variables have dev defaults baked into `run.sh`. Override any of them via `.env` at the repo root:
+
+```bash
+# Copy .env.local → .env and fill in only what you want to override
+cp .env.local .env
+```
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OG_RPC_URL` | `https://evmrpc-testnet.0g.ai` | 0G Galileo RPC |
+| `OG_COMPUTE_ENDPOINT` | baked | 0G Compute LLM API |
+| `OG_COMPUTE_API_KEY` | baked | 0G Compute auth token |
+| `OPENAI_API_KEY` | baked | Embedding generation only |
+| `PRIVATE_KEY` | baked (testnet) | Wallet for ERC-8183/7857 writes |
+| `RAXC_AUDIT_TASK_8183_ADDRESS` | baked | ERC-8183 contract |
+| `RAXC_AGENT_NFT_ADDRESS` | baked | ERC-7857 contract |
+| `RAXC_CONTRACT_FILE` | — | Path to `.sol` file to audit |
+| `RAXC_CONTRACT_CODE` | — | Inline Solidity source to audit |
+
+---
+
+## Frontend
+
+Next.js 14 frontend — read-only verification interface, reads directly from 0G Galileo via ethers.js:
+
+- **ArchFlow** — 6-step pipeline visualization: OpenClaw → RAXC → 0G Compute → 0G Storage → ERC-7857 → ERC-8183
+- **AuditExplorer** — All on-chain audit tasks from ERC-8183, with root hash links to 0G Storage reports
+- **MemorySection** — Live on-chain cognition entry count + full task list
+- **DownloadSection** — Install instructions
+
+---
+
+## Deployed Services
+
+| Service | URL |
+|---------|-----|
+| Frontend | [raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app) |
+| Remote Storage | [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev) |
+| 0G RPC | `https://evmrpc-testnet.0g.ai` |
+| 0G Indexer | `https://indexer-storage-testnet-turbo.0g.ai` |
+| 0G Compute | `https://compute-network-6.integratenetwork.work` |
+
+---
+
+## Credits
+
+- **0G Foundation** — Storage, Compute, and Galileo Testnet infrastructure
+- **DeFiHackLabs** — Real-world DeFi exploit collection
+- **DeFiVulnLabs** — Vulnerability pattern library
+- **OpenClaw** — Agent CLI orchestration layer
+
+---
+
+## License
+
+MIT — see [LICENSE](backend/LICENSE)
