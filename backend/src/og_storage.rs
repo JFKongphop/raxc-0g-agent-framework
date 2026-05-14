@@ -575,7 +575,7 @@ impl OgStorageClient {
                     "[Chain Memory] Past audit — vuln: {} | risk: {} | confidence: {}% | hash: {}",
                     vuln, risk, conf, &root_hash[..10],
                   );
-                  println!("[✓] MemoryTool: Loaded past audit from 0G Storage");
+                  println!("[✓] MemoryTool:  Loaded past audit from 0G Storage");
                   contexts.push(summary);
                   raw_jsons.push(v);
                 } else {
@@ -591,7 +591,7 @@ impl OgStorageClient {
             } else {
               "command failed".to_string()
             };
-            println!("[!] MemoryTool: 0G Storage download failed for {} — {}", &root_hash[..10], err_msg);
+            println!("[!] MemoryTool:  0G Storage download failed for {} — {}", &root_hash[..10], err_msg);
           }
         }
     }

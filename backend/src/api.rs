@@ -89,6 +89,9 @@ struct AnalyzeResponse {
   graph_edges: usize,
   replay_id: String,
   trace_hash: String,
+  storage_root_hash: String,
+  report_root_hash: String,
+  report_filename: String,
 }
 
 // ─── Error type ───────────────────────────────────────────────────────────────
@@ -255,6 +258,9 @@ async fn handle_analyze(
     graph_edges: result.attack_graph.edges.len(),
     replay_id: result.attestation.replay_id.clone(),
     trace_hash: result.attestation.execution_trace_hash.clone(),
+    storage_root_hash: result.storage_root_hash.clone(),
+    report_root_hash: result.report_root_hash.clone(),
+    report_filename: result.filename.clone(),
   }))
 }
 
