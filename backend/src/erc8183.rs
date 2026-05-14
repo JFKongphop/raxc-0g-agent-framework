@@ -94,7 +94,7 @@ pub async fn create_audit_task(contract_name: &str) -> anyhow::Result<u64> {
     .map(|t| U256::from(t.as_bytes()).as_u64())
     .ok_or_else(|| anyhow::anyhow!("AuditTaskCreated event not found in receipt"))?;
 
-  println!("\x1b[35m[ERC-8183]       Task #{} created (TX: 0x{:x})\x1b[0m", task_id, receipt.transaction_hash);
+  println!("\x1b[35m[ERC-8183]       Task #{} created (TX: https://chainscan-galileo.0g.ai/tx/0x{:x})\x1b[0m", task_id, receipt.transaction_hash);
 
   Ok(task_id)
 }
@@ -107,7 +107,7 @@ pub async fn finalize_audit_task(
   task_id: u64,
   result: &AnalysisResult,
   contract_name: &str,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<String> {
   let (client, contract_addr) = build_client()?;
 
   let verdict = result.final_decision.final_verdict.clone();
@@ -172,8 +172,10 @@ pub async fn finalize_audit_task(
     .map_err(|e| anyhow::anyhow!("finalizeAuditTask tx failed: {}", e))?;
 
   println!("\x1b[35m[ERC-8183]       Audit task #{} finalized on-chain (chain 16602)\x1b[0m", task_id);
-  println!("    TX: \x1b[92m0x{:x}\x1b[0m", pending.tx_hash());
+  let tx_hash = format!("0x{:x}", pending.tx_hash());
+  println!("    TX:  \x1b[92m{}\x1b[0m", tx_hash);
+  println!("    URL: \x1b[94mhttps://chainscan-galileo.0g.ai/tx/{}\x1b[0m", tx_hash);
   println!("\x1b[2m    Task #{} is now COMPLETED and verifiable on-chain\x1b[0m", task_id);
 
-  Ok(())
+  Ok(tx_hash)
 }
