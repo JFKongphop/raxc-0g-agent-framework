@@ -66,7 +66,7 @@ export OG_COMPUTE_ENDPOINT="https://api.compute.testnet.openlayer.network"
 
 ## Live Demo
 
-- 🌐 **Web Interface:** [https://raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)
+- 🌐 **Web Interface:** [https://raxclaw.vercel.app](https://raxclaw.vercel.app)
 - 🔌 **API:** [https://raxc-0g-agent-framework.fly.dev](https://raxc-0g-agent-framework.fly.dev)
 
 ## Architecture
