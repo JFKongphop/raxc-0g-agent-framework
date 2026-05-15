@@ -41,7 +41,7 @@ async fn download_and_parse(root_hash: &str, stream_id: &str, key: &str) -> Resu
   );
 
   let indexer_rpc = std::env::var("OG_INDEXER_RPC")
-    .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
+    .unwrap_or_else(|_| "https://indexer-storage-turbo.0g.ai".to_string());
   
   let output = tokio::process::Command::new(CLI_PATH)
     .args(&[
@@ -251,30 +251,27 @@ impl OgStorageClient {
     let safe_key = key.replace(":", "_").replace("/", "_");
 
     let indexer_rpc = std::env::var("OG_INDEXER_RPC")
-      .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
+      .unwrap_or_else(|_| "https://indexer-storage-turbo.0g.ai".to_string());
     let private_key = std::env::var("OG_STORAGE_PRIVATE_KEY")
       .or_else(|_| std::env::var("PRIVATE_KEY"));
 
     let root_hash = match private_key {
       Ok(pk) => {
         let evm_rpc = std::env::var("OG_RPC_URL")
-          .unwrap_or_else(|_| "https://evmrpc-testnet.0g.ai".to_string());
-        let stream_id = std::env::var("OG_STREAM_ID")
-          .unwrap_or_else(|_| "raxc_audits".to_string());
-        // Base64-encode value to avoid CSV quote-parsing issues in 0g-cli --stream-values
-        let encoded_value = general_purpose::STANDARD.encode(value.as_bytes());
+          .unwrap_or_else(|_| "https://evmrpc.0g.ai".to_string());
+        // Write value to a temp file — 0g-cli upload requires a file path
+        let tmp_path = format!("/tmp/raxc_upload_{}.dat", safe_key);
+        std::fs::write(&tmp_path, value.as_bytes())?;
         // Use spawn() + stream stderr line-by-line so INFO logs appear in real time
         use tokio::io::{AsyncBufReadExt, BufReader};
         use std::process::Stdio;
         let child = tokio::process::Command::new(CLI_PATH)
           .args(&[
-            "kv-write",
+            "upload",
             "--url", &evm_rpc,
             "--indexer", &indexer_rpc,
             "--key", &pk,
-            "--stream-id", &stream_id,
-            "--stream-keys", key,
-            "--stream-values", &encoded_value,
+            "--file", &tmp_path,
             "--expected-replica", "1",
           ])
           .stderr(Stdio::piped())
@@ -297,7 +294,7 @@ impl OgStorageClient {
           }
           Err(e) => Err(e),
         };
-        let _ = &encoded_value; // suppress unused warning
+        let _ = std::fs::remove_file(&tmp_path); // clean up temp file
 
         match output {
           Ok((true, stderr)) => {
@@ -346,7 +343,7 @@ impl OgStorageClient {
               .and_then(|line| hex_re2.captures(line).map(|c| format!("0x{}", &c[1])))
               .or_else(|| hex_re2.captures_iter(&stderr).map(|c| format!("0x{}", &c[1])).last());
             if let Some(ref h) = recovered {
-              println!("    [0G Storage]     kv-write partial — root computed: {}", h);
+              println!("    [0G Storage]     upload partial — root computed: {}", h);
               let cache_dir = raxc_cache_dir();
               let _ = std::fs::write(
                 format!("{}/roothash_{}.content", cache_dir, h.trim_start_matches("0x")),
@@ -446,10 +443,10 @@ impl OgStorageClient {
     let contract = std::env::var("RAXC_AGENT_NFT_ADDRESS")
       .map_err(|_| anyhow::anyhow!("RAXC_AGENT_NFT_ADDRESS not set"))?;
     let rpc_url = std::env::var("OG_RPC_URL")
-      .unwrap_or_else(|_| "https://evmrpc-testnet.0g.ai".to_string());
+      .unwrap_or_else(|_| "https://evmrpc.0g.ai".to_string());
     let evm_rpc = rpc_url.clone();
     let indexer_rpc = std::env::var("OG_INDEXER_RPC")
-      .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
+      .unwrap_or_else(|_| "https://indexer-storage-turbo.0g.ai".to_string());
 
     println!("[MemoryTool]     Reading past audits from chain (token #{})...", token_id);
 

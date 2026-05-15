@@ -56,7 +56,7 @@ pub fn load_env() {
 /// Build 0G Storage client (pre-loads exploits)
 pub async fn build_og_storage() -> Result<OgStorageClient> {
   let indexer_rpc = std::env::var("OG_INDEXER_RPC")
-    .unwrap_or_else(|_| "https://indexer-storage-testnet-turbo.0g.ai".to_string());
+    .unwrap_or_else(|_| "https://indexer-storage-turbo.0g.ai".to_string());
   let stream_id =
     std::env::var("OG_STORAGE_STREAM_ID").unwrap_or_else(|_| "defi_cases".to_string());
   let cli_path = std::env::var("OG_CLI_PATH").unwrap_or_else(|_| "./0g-cli".to_string());

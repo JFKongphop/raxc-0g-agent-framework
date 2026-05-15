@@ -7,7 +7,7 @@
 //! Env vars required:
 //!   RAXC_AUDIT_TASK_8183_ADDRESS — deployed RaxcAuditTask8183 address (0x...)
 //!   PRIVATE_KEY                  — agent wallet private key (0x...)
-//!   OG_RPC_URL                   — 0G Galileo RPC (default: https://evmrpc-testnet.0g.ai)
+//!   OG_RPC_URL                   — 0G Mainnet RPC (default: https://evmrpc.0g.ai)
 
 use std::sync::Arc;
 use ethers::{
@@ -38,14 +38,14 @@ fn build_client() -> anyhow::Result<(Arc<SignerMiddleware<Provider<Http>, LocalW
   let private_key = std::env::var("PRIVATE_KEY")
     .map_err(|_| anyhow::anyhow!("PRIVATE_KEY not set"))?;
   let rpc_url = std::env::var("OG_RPC_URL")
-    .unwrap_or_else(|_| "https://evmrpc-testnet.0g.ai".to_string());
+    .unwrap_or_else(|_| "https://evmrpc.0g.ai".to_string());
 
   let provider = Provider::<Http>::try_from(rpc_url.as_str())?;
   let contract_addr: Address = contract_addr_str.parse()?;
 
   let wallet: LocalWallet = private_key.trim_start_matches("0x")
     .parse::<LocalWallet>()?
-    .with_chain_id(16602u64);
+    .with_chain_id(16661u64);
   let client = Arc::new(SignerMiddleware::new(provider, wallet));
 
   Ok((client, contract_addr))
@@ -60,7 +60,7 @@ fn build_client() -> anyhow::Result<(Arc<SignerMiddleware<Provider<Http>, LocalW
 pub async fn create_audit_task(contract_name: &str) -> anyhow::Result<u64> {
   let (client, contract_addr) = build_client()?;
 
-  println!("\n\x1b[35m[ERC-8183]       Creating audit task on 0G Galileo...\x1b[0m");
+  println!("\n\x1b[35m[ERC-8183]       Creating audit task on 0G Mainnet...\x1b[0m");
   println!("\x1b[2m    Contract:    {}\x1b[0m", contract_name);
   println!("\x1b[2m    Task Addr:   {}\x1b[0m", contract_addr);
 
@@ -74,7 +74,7 @@ pub async fn create_audit_task(contract_name: &str) -> anyhow::Result<u64> {
     .to(contract_addr)
     .data(Bytes::from(calldata))
     .gas_price(3_000_000_000u64)
-    .chain_id(16602u64);
+    .chain_id(16661u64);
 
   let pending = client.send_transaction(tx, None).await
     .map_err(|e| anyhow::anyhow!("createAuditTask tx failed: {}", e))?;
@@ -94,7 +94,7 @@ pub async fn create_audit_task(contract_name: &str) -> anyhow::Result<u64> {
     .map(|t| U256::from(t.as_bytes()).as_u64())
     .ok_or_else(|| anyhow::anyhow!("AuditTaskCreated event not found in receipt"))?;
 
-  println!("\x1b[35m[ERC-8183]       Task #{} created (TX: https://chainscan-galileo.0g.ai/tx/0x{:x})\x1b[0m", task_id, receipt.transaction_hash);
+  println!("\x1b[35m[ERC-8183]       Task #{} created (TX: https://chainscan.0g.ai/tx/0x{:x})\x1b[0m", task_id, receipt.transaction_hash);
 
   Ok(task_id)
 }
@@ -132,7 +132,7 @@ pub async fn finalize_audit_task(
   };
   let trace_hash = hex_to_bytes32(&trace_hash_full)?;
 
-  println!("\n\x1b[35m[ERC-8183]       Finalizing audit task #{} on 0G Galileo...\x1b[0m", task_id);
+  println!("\n\x1b[35m[ERC-8183]       Finalizing audit task #{} on 0G Mainnet...\x1b[0m", task_id);
   println!("\x1b[2m    Contract:    {}\x1b[0m", contract_name);
   println!("\x1b[2m    Verdict:     {}\x1b[0m", verdict);
   println!("\x1b[2m    Confidence:  {:.2}%\x1b[0m", result.decision.confidence * 100.0);
@@ -166,15 +166,15 @@ pub async fn finalize_audit_task(
     .data(Bytes::from(calldata))
     .nonce(nonce)
     .gas_price(3_000_000_000u64)
-    .chain_id(16602u64);
+    .chain_id(16661u64);
 
   let pending = client.send_transaction(tx, None).await
     .map_err(|e| anyhow::anyhow!("finalizeAuditTask tx failed: {}", e))?;
 
-  println!("\x1b[35m[ERC-8183]       Audit task #{} finalized on-chain (chain 16602)\x1b[0m", task_id);
+  println!("\x1b[35m[ERC-8183]       Audit task #{} finalized on-chain (chain 16661)\x1b[0m", task_id);
   let tx_hash = format!("0x{:x}", pending.tx_hash());
   println!("    TX:  \x1b[92m{}\x1b[0m", tx_hash);
-  println!("    URL: \x1b[94mhttps://chainscan-galileo.0g.ai/tx/{}\x1b[0m", tx_hash);
+  println!("    URL: \x1b[94mhttps://chainscan.0g.ai/tx/{}\x1b[0m", tx_hash);
   println!("\x1b[2m    Task #{} is now COMPLETED and verifiable on-chain\x1b[0m", task_id);
   println!("\n\x1b[2m    View Report on Frontend:\x1b[0m");
   println!("    \x1b[94mhttps://raxclaw.vercel.app/roothash/{}?tx={}\x1b[0m", root_hash_str, tx_hash);

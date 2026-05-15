@@ -279,7 +279,7 @@ interface IUniswapPair {
   } else { None };
 
   // ─── Append on-chain proof section to saved report ────────────────────────────
-  const EXPLORER: &str = "https://chainscan-galileo.0g.ai/tx/";
+  const EXPLORER: &str = "https://chainscan.0g.ai/tx/";
   let fmt_tx = |tx: Option<&str>| -> String {
     match tx {
       Some(hash) => format!("[{}]({}{})", hash, EXPLORER, hash.trim_start_matches("0x")),
@@ -287,7 +287,7 @@ interface IUniswapPair {
     }
   };
   let chain_proof = format!(
-    "\n\n---\n\n## 🔗 On-Chain Proof (0G Galileo)\n\n\
+    "\n\n---\n\n## 🔗 On-Chain Proof (0G Mainnet)\n\n\
 | Field | Value |\n\
 |-------|-------|\n\
 | 0G Storage — JSON Summary | `{}` |\n\
@@ -296,7 +296,7 @@ interface IUniswapPair {
 | Execution Trace Hash      | `{}` |\n\
 | ERC-7857 Intelligence TX  | {} |\n\
 | ERC-8183 Finalize TX      | {} |\n\
-| Chain                     | [0G Galileo (Chain 16602)](https://chainscan-galileo.0g.ai) |\n",
+| Chain                     | [0G Mainnet (Chain 16661)](https://chainscan.0g.ai) |\n",
     if result.storage_root_hash.is_empty() { "—".to_string() } else { result.storage_root_hash.clone() },
     if result.report_root_hash.is_empty() { "—".to_string() } else { result.report_root_hash.clone() },
     result.attestation.replay_id,
@@ -322,7 +322,7 @@ interface IUniswapPair {
 ///   RAXC_AGENT_NFT_ADDRESS  — deployed contract address (0x...)
 ///   RAXC_AGENT_TOKEN_ID     — token ID (default: 0)
 ///   PRIVATE_KEY             — agent wallet private key (0x...)
-///   OG_RPC_URL              — 0G Galileo RPC (default: https://evmrpc-testnet.0g.ai)
+///   OG_RPC_URL              — 0G Mainnet RPC (default: https://evmrpc.0g.ai)
 async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) -> anyhow::Result<String> {
   let contract_addr = std::env::var("RAXC_AGENT_NFT_ADDRESS")
     .map_err(|_| anyhow::anyhow!("RAXC_AGENT_NFT_ADDRESS not set"))?;
@@ -332,7 +332,7 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let private_key = std::env::var("PRIVATE_KEY")
     .map_err(|_| anyhow::anyhow!("PRIVATE_KEY not set"))?;
   let rpc_url = std::env::var("OG_RPC_URL")
-    .unwrap_or_else(|_| "https://evmrpc-testnet.0g.ai".to_string());
+    .unwrap_or_else(|_| "https://evmrpc.0g.ai".to_string());
 
   // Query on-chain Updated events to get current audit number
   let provider = Provider::<Http>::try_from(rpc_url.as_str())?;
@@ -372,7 +372,7 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   let mut data_hash = [0u8; 32];
   data_hash.copy_from_slice(&hash_bytes);
 
-  println!("\n\x1b[35m[ERC-7857]       Updating agent intelligence on 0G Galileo...\x1b[0m");
+  println!("\n\x1b[35m[ERC-7857]       Updating agent intelligence on 0G Mainnet...\x1b[0m");
   println!("\x1b[2m    Contract:    {}\x1b[0m", contract_addr);
   println!("\x1b[2m    Agent NFT:   Token #{} (Update #{} on this NFT)\x1b[0m", token_id, audit_number);
   println!("\x1b[2m    Description: {}\x1b[0m", description);
@@ -403,23 +403,23 @@ async fn update_agent_nft(result: &raxc::AnalysisResult, contract_name: &str) ->
   // ── Build signer + provider ───────────────────────────────────────────────
   let wallet: LocalWallet = private_key.trim_start_matches("0x")
     .parse::<ethers::signers::LocalWallet>()?
-    .with_chain_id(16602u64);
+    .with_chain_id(16661u64);
   let client = Arc::new(SignerMiddleware::new(provider, wallet.clone()));
 
   let tx = TransactionRequest::new()
     .to(contract_addr)
     .data(Bytes::from(calldata))
-    .gas_price(3_000_000_000u64)  // 3 gwei — legacy tx for 0G Galileo
-    .chain_id(16602u64);
+    .gas_price(3_000_000_000u64)  // 3 gwei — legacy tx for 0G Mainnet
+    .chain_id(16661u64);
 
   let pending = client.send_transaction(tx, None).await
     .map_err(|e| anyhow::anyhow!("send_transaction failed: {}", e))?;
 
-  println!("\x1b[35m[ERC-7857]       Intelligence updated on-chain (chain 16602)\x1b[0m");
+  println!("\x1b[35m[ERC-7857]       Intelligence updated on-chain (chain 16661)\x1b[0m");
   let tx_hash = format!("0x{:x}", pending.tx_hash());
   println!("    TX:  \x1b[92m{}\x1b[0m", tx_hash);
-  println!("    URL: \x1b[94mhttps://chainscan-galileo.0g.ai/tx/{}\x1b[0m", tx_hash);
-  println!("\x1b[2m    Audit trace committed to 0G Galileo\x1b[0m");
+  println!("    URL: \x1b[94mhttps://chainscan.0g.ai/tx/{}\x1b[0m", tx_hash);
+  println!("\x1b[2m    Audit trace committed to 0G Mainnet\x1b[0m");
 
   Ok(tx_hash)
 }
