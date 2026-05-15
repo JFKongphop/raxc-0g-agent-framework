@@ -17,12 +17,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 BACKEND_DIR="$REPO_ROOT/backend"
 
 # ── Baked-in dev configuration (override by setting vars before running) ──────
-# 0G Galileo Testnet
-export OG_RPC_URL="${OG_RPC_URL:-https://evmrpc-testnet.0g.ai}"
-export RPC_URL="${RPC_URL:-https://evmrpc-testnet.0g.ai}"
-export BLOCKCHAIN_RPC="${BLOCKCHAIN_RPC:-https://evmrpc-testnet.0g.ai}"
-export OG_INDEXER_RPC="${OG_INDEXER_RPC:-https://indexer-storage-testnet-turbo.0g.ai}"
-export INDEXER_RPC="${INDEXER_RPC:-https://indexer-storage-testnet-standard.0g.ai}"
+# 0G Mainnet
+export OG_RPC_URL="${OG_RPC_URL:-https://evmrpc.0g.ai}"
+export RPC_URL="${RPC_URL:-https://evmrpc.0g.ai}"
+export BLOCKCHAIN_RPC="${BLOCKCHAIN_RPC:-https://evmrpc.0g.ai}"
+export OG_INDEXER_RPC="${OG_INDEXER_RPC:-https://indexer-storage-turbo.0g.ai}"
+export INDEXER_RPC="${INDEXER_RPC:-https://indexer-storage-turbo.0g.ai}"
 
 # 0G Storage
 export OG_STORAGE_ENDPOINT="${OG_STORAGE_ENDPOINT:-https://storage-testnet.0g.ai/api}"
@@ -34,8 +34,8 @@ export OG_COMPUTE_MODEL="${OG_COMPUTE_MODEL:-qwen/qwen-2.5-7b-instruct}"
 export OG_COMPUTE_API_KEY="${OG_COMPUTE_API_KEY:-app-sk-eyJhZGRyZXNzIjoiMHgyMDRhNzNlODMwM0YzZDA5QjEyMDYyZEVkQUE3NEIxQ0RBNkUxNjdkIiwicHJvdmlkZXIiOiIweGE0OGYwMTI4NzIzMzUwOUZENjk0YTIyQmY4NDAyMjUwNjJFNjc4MzYiLCJ0aW1lc3RhbXAiOjE3NzczOTI3MzYxMjIsImV4cGlyZXNBdCI6MCwibm9uY2UiOiI1MzM1ODk3NzdjYTdmNGY2ZTkxMjRlMGE1MDNlYWE5MiIsImdlbmVyYXRpb24iOjAsInRva2VuSWQiOjB9fDB4OTVhNTc3MDVhODAzOTZjMzkwYTQyMjM1NGU0ZDMxYTUwYWVjZDdlYzBhNTVmYzE0MmU0ZDBiNjliNTM0MTViODQ3YjA4ZmYwYTYzZmVmZTk3NTFkODlmYmZlY2MyZWUyZmZhMjRiNTk4ODJlNGYzYmNmNzRiMGUwY2E3N2MwMDgxYg==}"
 
 # Deployed contracts (ERC-8183 + ERC-7857)
-export RAXC_AUDIT_TASK_8183_ADDRESS="${RAXC_AUDIT_TASK_8183_ADDRESS:-0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c}"
-export RAXC_AGENT_NFT_ADDRESS="${RAXC_AGENT_NFT_ADDRESS:-0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53}"
+export RAXC_AUDIT_TASK_8183_ADDRESS="${RAXC_AUDIT_TASK_8183_ADDRESS:-0xa018A255881e0525831Df7bCDf9A03D1B06E1790}"
+export RAXC_AGENT_NFT_ADDRESS="${RAXC_AGENT_NFT_ADDRESS:-0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e}"
 export RAXC_AGENT_TOKEN_ID="${RAXC_AGENT_TOKEN_ID:-0}"
 export VAULT_ADDRESS="${VAULT_ADDRESS:-0x7Ad0e4B636C63CdfF4e73895855E0a3Fe087C16c}"
 
