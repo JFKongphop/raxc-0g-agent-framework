@@ -176,6 +176,8 @@ pub async fn finalize_audit_task(
   println!("    TX:  \x1b[92m{}\x1b[0m", tx_hash);
   println!("    URL: \x1b[94mhttps://chainscan-galileo.0g.ai/tx/{}\x1b[0m", tx_hash);
   println!("\x1b[2m    Task #{} is now COMPLETED and verifiable on-chain\x1b[0m", task_id);
+  println!("\n\x1b[2m    View Report on Frontend:\x1b[0m");
+  println!("    \x1b[94mhttps://raxc-0g-agent-framework.vercel.app/roothash/{}?tx={}\x1b[0m", root_hash_str, tx_hash);
 
   Ok(tx_hash)
 }
