@@ -2,8 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![0G Testnet](https://img.shields.io/badge/0G-Galileo%20Testnet-cyan)](https://evmrpc-testnet.0g.ai)
-[![ERC-8183](https://img.shields.io/badge/ERC--8183-Audit%20Task-green)](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c)
-[![ERC-7857](https://img.shields.io/badge/ERC--7857-Agent%20NFT-purple)](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53)
+[![ERC-8183](https://img.shields.io/badge/ERC--8183-Audit%20Task-green)](https://chainscan.0g.ai/address/0xa018A255881e0525831Df7bCDf9A03D1B06E1790)
+[![ERC-7857](https://img.shields.io/badge/ERC--7857-Agent%20NFT-purple)](https://chainscan.0g.ai/address/0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e)
 
 > **RAXCLAW** is an autonomous smart contract security agent powered by 0G Storage, 0G Compute, on-chain ERC-8183 audit proof + ERC-7857 agent NFT, and **OpenClaw** orchestration — detecting vulnerabilities using 722 real DeFi exploits.
 
@@ -92,15 +92,34 @@ The CLI (`raxclaw`) is the primary product. The frontend is a verification and r
 
 ---
 
-## On-Chain Contracts (0G Galileo Testnet — Chain ID 16602)
+## On-Chain Contracts (0G Mainnet — Chain ID 16661)
 
 | Contract | Standard | Address |
 |----------|----------|---------|
-| **RaxcAuditTask8183** | ERC-8183 | [`0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c`](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c) |
-| **RaxcAgentNFT** | ERC-7857 | [`0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53`](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53) |
+| **RaxcAuditTask8183** | ERC-8183 | [`0xa018A255881e0525831Df7bCDf9A03D1B06E1790`](https://chainscan.0g.ai/address/0xa018A255881e0525831Df7bCDf9A03D1B06E1790) |
+| **RaxcAgentNFT** | ERC-7857 | [`0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e`](https://chainscan.0g.ai/address/0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e) |
 
 **ERC-8183** — Audit task lifecycle: `createTask → finalizeTask(verdict, rootHash, replayId)`  
 **ERC-7857** — Intelligent agent NFT: on-chain memory pointer updated after every audit
+
+### Live Transactions (0G Mainnet)
+
+| # | Action | TX |
+|---|--------|----|
+| 1 | ERC-8183 Task #1 created | [`0x9fbc0d61...`](https://chainscan.0g.ai/tx/0x9fbc0d61bcfbedb0e9e8d947c134d7e2b890ca9a9fc985c05940061413180a58) |
+| 2 | 0G Storage upload (JSON, seq 101964) | [`0x7fdacda8...`](https://chainscan.0g.ai/tx/0x7fdacda80da7b9640e54514e52f39ef4d0f56d37f5ffe875d4d6cb36316a2992) |
+| 3 | 0G Storage upload (report, seq 101964) | [`0xa94dce2b...`](https://chainscan.0g.ai/tx/0xa94dce2b879501a6ee5ecd70d489895b91baf492021f5bdcb22fc5908c6514cd) |
+| 4 | ERC-7857 NFT updated (Update #2) | [`0xc530287c...`](https://chainscan.0g.ai/tx/0xc530287c782be4c7231f19817b1830c2dc7b4e6bc866e3d488e1603629511ab4) |
+| 5 | ERC-8183 Task #1 finalized | [`0x6849d86b...`](https://chainscan.0g.ai/tx/0x6849d86ba0962916f8921928ad3e8c350c6b1fb6cd13e297c04afee07b397e65) |
+| 6 | ERC-8183 Task #2 created | [`0xe4f12e35...`](https://chainscan.0g.ai/tx/0xe4f12e35147b375227530addcc8b606f8a0aa1eb98c4b0774e16840dd4a98286) |
+| 7 | 0G Storage upload (JSON, seq 101967) | [`0x35eee100...`](https://chainscan.0g.ai/tx/0x35eee100473e6ea3666aba2137ade8c5fd8b2088a56b665244c02d15d6987292) |
+| 8 | 0G Storage upload (report, seq 101968) | [`0x444e5130...`](https://chainscan.0g.ai/tx/0x444e5130b5ca34fea47b3c6ae496a9fb961494729b94a351c8f48a3f3ab86a61) |
+| 9 | ERC-7857 NFT updated (Update #3) | [`0x7d3e5c34...`](https://chainscan.0g.ai/tx/0x7d3e5c3421bb6d414ed7f410124559607995d886df4027aa1ccbb5d6082271f6) |
+| 10 | ERC-8183 Task #2 finalized | [`0x64fc5049...`](https://chainscan.0g.ai/tx/0x64fc5049de6fef9764f769760a5e2b42e8db03834eaddee7d63bf49ce07f1097) |
+
+**Verified audit reports on frontend:**
+- [Task #1 — DeFiVault Reentrancy](https://raxclaw.vercel.app/roothash/0xa23fe510c76ed95cf758d455a2494178fdfb08035bba41e88d49fa6065fb2580?tx=0x6849d86ba0962916f8921928ad3e8c350c6b1fb6cd13e297c04afee07b397e65)
+- [Task #2 — DeFiVault Reentrancy](https://raxclaw.vercel.app/roothash/0x99bfe8c55a10e5551fef7dce66a11b165760911dc249ff564db08b76c1f81242?tx=0x64fc5049de6fef9764f769760a5e2b42e8db03834eaddee7d63bf49ce07f1097)
 
 ---
 
@@ -156,7 +175,7 @@ const flow = getFlowContract(BLOCKCHAIN_RPC, signer);
 Verify any entry by downloading it directly from 0G Storage:
 ```bash
 ./backend/0g-cli download \
-  --indexer https://indexer-storage-testnet-turbo.0g.ai \
+  --indexer https://indexer-storage-turbo.0g.ai \
   --root 0x3f3a21452d595f571c16caa908f68a612156d9ef2b2e0262599d0483c779f789 \
   --file /tmp/reentrancy.bin
 ```
@@ -175,8 +194,6 @@ Startup (once):
     └─ reads manifest.json  →  list of { root_hash, stream_id, key }
     └─ for each entry (10 concurrent):
          0g-cli download --indexer <INDEXER_RPC> --root <root_hash> --file /tmp/*.bin
-         parse binary: find stream_id → find key → extract base64 → decode JSON
-         → LoadedExploit { embedding: Vec<f64>, metadata, code_snippet }
     └─ all 722 exploits loaded into Vec<LoadedExploit> in RAM
 
 Runtime (per query, <10ms):
@@ -226,7 +243,7 @@ let result = compute.infer(prompt).await?;
 
 ### 4. 0G Galileo EVM — On-Chain Proof (ERC-8183 + ERC-7857)
 
-`erc8183.rs` writes to the deployed contracts on 0G Galileo (chain ID 16602) using raw ABI encoding via `ethers-rs`:
+`erc8183.rs` writes to the deployed contracts on 0G Mainnet (chain ID 16661) using raw ABI encoding via `ethers-rs`:
 
 ```rust
 // Step 1 — register the job (before analysis)
@@ -368,12 +385,12 @@ pnpm install && pnpm build:all
 
 | Item | Detail |
 |------|--------|
-| Network | 0G Galileo Testnet (Chain ID 16602) |
-| RPC | `https://evmrpc-testnet.0g.ai` |
-| Explorer | [chainscan-galileo.0g.ai](https://chainscan-galileo.0g.ai) |
+| Network | 0G Mainnet (Chain ID 16661) |
+| RPC | `https://evmrpc.0g.ai` |
+| Explorer | [chainscan.0g.ai](https://chainscan.0g.ai) |
 | Testnet wallet | Pre-funded, baked into `run.sh` — no faucet needed |
-| ERC-8183 contract | [`0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c`](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c) |
-| ERC-7857 contract | [`0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53`](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53) |
+| ERC-8183 contract | [`0xa018A255881e0525831Df7bCDf9A03D1B06E1790`](https://chainscan.0g.ai/address/0xa018A255881e0525831Df7bCDf9A03D1B06E1790) |
+| ERC-7857 contract | [`0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e`](https://chainscan.0g.ai/address/0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e) |
 | 0G Storage proof | [`backend/manifest.json`](https://github.com/JFKongphop/raxc-0g-agent-framework/blob/main/backend/manifest.json) — 722 root hashes |
 | Remote storage health | [`/health`](https://raxc-0g-agent-framework-j43hng.fly.dev/health) — live, returns `{"loaded":722}` |
 | Build time | ~2.5 min first run (Rust compile); instant after `pnpm build:rust` |
@@ -652,7 +669,7 @@ cp .env.local .env
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `OG_RPC_URL` | `https://evmrpc-testnet.0g.ai` | 0G Galileo RPC |
+| `OG_RPC_URL` | `https://evmrpc.0g.ai` | 0G Mainnet RPC |
 | `OG_COMPUTE_ENDPOINT` | baked | 0G Compute LLM API |
 | `OG_COMPUTE_API_KEY` | baked | 0G Compute auth token |
 | `OPENAI_API_KEY` | baked | Embedding generation only |
@@ -681,8 +698,8 @@ Next.js 14 frontend — read-only verification interface, reads directly from 0G
 |---------|-----|
 | Frontend | [raxclaw.vercel.app](https://raxclaw.vercel.app) |
 | Remote Storage | [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev) |
-| 0G RPC | `https://evmrpc-testnet.0g.ai` |
-| 0G Indexer | `https://indexer-storage-testnet-turbo.0g.ai` |
+| 0G RPC | `https://evmrpc.0g.ai` |
+| 0G Indexer | `https://indexer-storage-turbo.0g.ai` |
 | 0G Compute | `https://compute-network-6.integratenetwork.work` |
 
 ---
