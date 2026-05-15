@@ -33,13 +33,13 @@ The CLI (`raxclaw`) is the primary product. The frontend is a verification and r
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        raxclaw CLI (Ink/React)                      │
-│   run │ analyze │ list │ show │ agent │ health                      │
+│            run │ analyze │ list │ show │ agent │ health             │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │ spawns
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│              skills/raxc-security/run.sh                            │
-│  (all env baked in — zero-config for users)                         │
+│                      skills/raxc-security/run.sh                    │
+│               (all env baked in — zero-config for users)            │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │ exec
                                   ▼
@@ -68,17 +68,17 @@ The CLI (`raxclaw`) is the primary product. The frontend is a verification and r
 │  12. og_storage upload      Store full report on 0G Storage         │
 └─────────────────────────────────┬───────────────────────────────────┘
                                   │
-          ┌───────────────────────┴──────────────────────┐
-          ▼                                              ▼
+              ┌───────────────────┴──────────────────────┐
+              ▼                                          ▼
 ┌───────────────────────────────┐   ┌─────────────────────────────────┐
-│  0G Galileo                   │   │  0G Storage                     │
-│  Testnet                      │   │  (722 exploits + reports)       │
+│          0G Galileo           │   │           0G Storage            │
+│            Testnet            │   │      (722 exploits + reports)   │
 │                               │   │                                 │
-│  ERC-8183                     │   │  RemoteOgStorage server         │
-│  RaxcAuditTask                │   │  (fly.dev — port 3001)          │
+│           ERC-8183            │   │      RemoteOgStorage server     │
+│        RaxcAuditTask          │   │       (fly.dev — port 3001)     │
 │                               │   │                                 │
-│  ERC-7857                     │   │  Indexer RPC                    │
-│  RaxcAgentNFT                 │   │  turbo.0g.ai                    │
+│           ERC-7857            │   │           Indexer RPC           │
+│         RaxcAgentNFT          │   │           turbo.0g.ai           │
 └───────────────────────────────┘   └─────────────────────────────────┘
 ```
 
