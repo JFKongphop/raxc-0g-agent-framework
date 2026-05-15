@@ -140,7 +140,7 @@ export function VerificationSection() {
           All audit results are stored on{' '}
           <span style={{ color: 'var(--cyan)' }}>0G Newton Testnet</span> and anchored
           via ERC-7857 on{' '}
-          <span style={{ color: 'var(--cyan)' }}>0G Galileo (chain 16602)</span>.
+          <span style={{ color: 'var(--cyan)' }}>0G Mainnet (chain 16661)</span>.
           Use the Replay ID to fully reconstruct any analysis.
         </div>
       </div>

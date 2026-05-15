@@ -76,13 +76,13 @@ export function MemorySection() {
             {/* Contract addresses */}
             <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
               {[
-                { label: 'ERC-8183', address: '0x6ffc92b063fc470dd2d4cbd0f64e75ed96ae7a8c', color: '#a0ff60' },
-                { label: 'ERC-7857', address: '0xe3c7863ad3176e88e9c75a580fc15a2976d5ff53', color: '#00ff88' },
+                { label: 'ERC-8183', address: '0xa018a255881e0525831df7bcdf9a03d1b06e1790', color: '#a0ff60' },
+                { label: 'ERC-7857', address: '0xf335a9b58f2aa6a2f884d2da4e308f7378a4cf7e', color: '#00ff88' },
               ].map(({ label, address, color }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color, minWidth: 56 }}>{label}</span>
                   <a
-                    href={`https://chainscan-galileo.0g.ai/address/${address}`}
+                    href={`https://chainscan.0g.ai/address/${address}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-dim)', textDecoration: 'none', letterSpacing: '0.02em' }}

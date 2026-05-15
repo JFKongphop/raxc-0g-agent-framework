@@ -1,15 +1,15 @@
 import { JsonRpcProvider, Contract, AbiCoder, id as keccak256id } from 'ethers';
 
-// ── 0G Galileo Testnet ────────────────────────────────────────────────────────
-export const RPC_URL = 'https://evmrpc-testnet.0g.ai';
-export const CHAIN_ID = 16602;
+// ── 0G Mainnet ───────────────────────────────────────────────────────────────
+export const RPC_URL = 'https://evmrpc.0g.ai';
+export const CHAIN_ID = 16661;
 
 // ── Deployed contract addresses ───────────────────────────────────────────────
 export const ADDRESSES = {
   /** ERC-8183 audit task lifecycle */
-  auditTask8183: '0x6ffc92b063fc470dd2d4cbd0f64e75ed96ae7a8c',
+  auditTask8183: '0xa018a255881e0525831df7bcdf9a03d1b06e1790',
   /** ERC-7857 intelligent agent NFT */
-  agentNFT: '0xe3c7863ad3176e88e9c75a580fc15a2976d5ff53',
+  agentNFT: '0xf335a9b58f2aa6a2f884d2da4e308f7378a4cf7e',
 } as const;
 
 // ── Event topic hashes (keccak256 of canonical signature) ─────────────────────
@@ -183,7 +183,7 @@ export async function fetchAuditTask(taskId: string): Promise<OnChainAudit | nul
 export { verdictToSeverity };
 
 // 0G Storage HTTP gateway — used to try fetching the full markdown report
-export const OG_STORAGE_GATEWAY = 'https://indexer-storage-testnet-turbo.0g.ai';
+export const OG_STORAGE_GATEWAY = 'https://indexer-storage-turbo.0g.ai';
 
 // ── ERC-7857 root hash fetcher (mirrors og_storage.rs load_from_chain_full) ──
 

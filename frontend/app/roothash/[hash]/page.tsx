@@ -178,7 +178,7 @@ export default function RootHashPage() {
             <CopyButton value={hash} />
             {txHash && (
               <a
-                href={`https://chainscan-galileo.0g.ai/tx/${txHash}`}
+                href={`https://chainscan.0g.ai/tx/${txHash}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ background: 'none', border: '1px solid rgba(0,212,255,0.2)', color: 'var(--cyan)', borderRadius: 4, padding: '3px 8px', fontSize: 10, fontFamily: 'var(--font-mono)', cursor: 'pointer', whiteSpace: 'nowrap', textDecoration: 'none' }}
