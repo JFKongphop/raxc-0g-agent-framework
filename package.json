@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "node build.cjs",
+    "build:rust": "cargo build --release --example agent_example_remote --manifest-path backend/Cargo.toml",
+    "build:all": "node build.cjs && cargo build --release --example agent_example_remote --manifest-path backend/Cargo.toml",
     "dev": "tsx raxclaw.tsx",
     "analyze": "tsx raxclaw.tsx analyze",
     "setup": "openclaw setup"

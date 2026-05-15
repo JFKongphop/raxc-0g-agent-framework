@@ -5,12 +5,19 @@
 [![ERC-8183](https://img.shields.io/badge/ERC--8183-Audit%20Task-green)](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c)
 [![ERC-7857](https://img.shields.io/badge/ERC--7857-Agent%20NFT-purple)](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53)
 
-> **RAXCLAW** is an autonomous smart contract security agent powered by 0G Storage, 0G Compute, and on-chain ERC-8183 proof — detecting vulnerabilities using 722 real DeFi exploits.
+> **RAXCLAW** is an autonomous smart contract security agent powered by 0G Storage, 0G Compute, on-chain ERC-8183 audit proof + ERC-7857 agent NFT, and **OpenClaw** orchestration — detecting vulnerabilities using 722 real DeFi exploits.
 
 > *"Don't just ask an AI if your contract is safe — ask an AI that has seen 722 real hacks."*
 
-🌐 **Frontend:** [raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
-�️ **Remote Storage:** [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev)
+🌐 **Frontend:** [raxclaw.vercel.app](https://raxclaw.vercel.app)  
+🗄️ **Remote Storage:** [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev)  
+🎬 **Demo Video:** [youtu.be/OV41-JY1zbM](https://youtu.be/OV41-JY1zbM)
+
+---
+
+## Demo
+
+[![RAXCLAW Demo](https://img.youtube.com/vi/OV41-JY1zbM/maxresdefault.jpg)](https://youtu.be/OV41-JY1zbM)
 
 ---
 
@@ -23,6 +30,7 @@ RAXCLAW is an **autonomous smart contract security agent** that detects vulnerab
 - **0G Storage** — decentralized, persistent exploit memory
 - **0G Compute** — decentralized LLM inference (qwen-2.5-7b-instruct)
 - **On-chain proof** — every audit result is stored as an ERC-8183 task + ERC-7857 NFT update
+- **OpenClaw orchestration** — agent CLI layer that routes `analyze` and `agent` commands to the RAXC cognition engine
 
 The CLI (`raxclaw`) is the primary product. The frontend is a verification and replay interface.
 
@@ -384,6 +392,67 @@ pnpm install && pnpm build:all
 ./dist/raxclaw health                       # Check remote agent server status
 ```
 
+### Option A — Audit a file
+
+```bash
+./dist/raxclaw run --file MyContract.sol
+```
+
+### Option B — Inline Solidity (paste code directly)
+
+```bash
+./dist/raxclaw run "// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract DemoVault {
+    address public owner;
+    mapping(address => uint256) public balances;
+    uint256 public totalDeposits;
+    uint256 public flashLoanFee = 10;
+
+    constructor() { owner = msg.sender; }
+
+    function deposit() external payable {
+        require(msg.value > 0, \"zero deposit\");
+        balances[msg.sender] += msg.value;
+        totalDeposits += msg.value;
+    }
+
+    function withdraw(uint256 amount) external {
+        require(balances[msg.sender] >= amount, \"insufficient balance\");
+        (bool ok, ) = msg.sender.call{value: amount}(\"\");
+        require(ok, \"transfer failed\");
+        balances[msg.sender] -= amount;
+        totalDeposits -= amount;
+    }
+
+    function flashLoan(uint256 amount) external {
+        require(amount <= address(this).balance, \"insufficient liquidity\");
+        uint256 fee = (amount * flashLoanFee) / 10_000;
+        uint256 balanceBefore = address(this).balance;
+        (bool ok, ) = msg.sender.call{value: amount}(abi.encodeWithSignature(\"receiveFlashLoan(uint256)\", amount));
+        require(ok, \"callback failed\");
+        require(address(this).balance >= balanceBefore + fee, \"not repaid\");
+    }
+
+    function setFee(uint256 newFee) external { flashLoanFee = newFee; }
+
+    function emergencyWithdraw() external {
+        require(msg.sender == owner, \"not owner\");
+        payable(owner).transfer(address(this).balance);
+    }
+
+    receive() external payable {}
+}"
+```
+
+After the audit completes, the CLI prints a direct link to the full report on the frontend:
+
+```
+    View Report on Frontend:
+    https://raxclaw.vercel.app/roothash/<root_hash>?tx=<tx_hash>
+```
+
 ---
 
 ## Build Scripts
@@ -610,7 +679,7 @@ Next.js 14 frontend — read-only verification interface, reads directly from 0G
 
 | Service | URL |
 |---------|-----|
-| Frontend | [raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app) |
+| Frontend | [raxclaw.vercel.app](https://raxclaw.vercel.app) |
 | Remote Storage | [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev) |
 | 0G RPC | `https://evmrpc-testnet.0g.ai` |
 | 0G Indexer | `https://indexer-storage-testnet-turbo.0g.ai` |

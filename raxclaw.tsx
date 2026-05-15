@@ -42,10 +42,22 @@ const BANNER = [
   "                                                           ",
 ];
 
+// Gradient colours for the 8 rows of BANNER (row 0 and 7 are blank padding)
+const BANNER_COLORS = [
+  'cyan',      // 0 blank
+  'cyan',      // 1 top
+  '#4dd9ff',   // 2 light blue
+  '#818cf8',   // 3 indigo
+  '#a78bfa',   // 4 violet
+  '#e879f9',   // 5 fuchsia
+  '#f472b6',   // 6 pink  ╚═╝ bottom row
+  'cyan',      // 7 blank
+];
+
 const Banner: FC = () => (
   <Box flexDirection="column" marginBottom={1}>
     {BANNER.map((line, i) => (
-      <Text key={i} bold color="cyan">
+      <Text key={i} bold color={BANNER_COLORS[i] ?? 'cyan'}>
         {line}
       </Text>
     ))}
