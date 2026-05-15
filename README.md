@@ -11,13 +11,13 @@
 
 🌐 **Frontend:** [raxclaw.vercel.app](https://raxclaw.vercel.app)  
 🗄️ **Remote Storage:** [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev)  
-🎬 **Demo Video:** [youtu.be/OV41-JY1zbM](https://youtu.be/OV41-JY1zbM)
+🎬 **Demo Video:** [youtu.be/OV41-JY1zbM](https://youtu.be/OV41-JY1zbM?si=VqPjwtPsPHnL9SAT)
 
 ---
 
 ## Demo
 
-[![RAXCLAW Demo](https://img.youtube.com/vi/OV41-JY1zbM/maxresdefault.jpg)](https://youtu.be/OV41-JY1zbM)
+[![RAXCLAW Demo](https://img.youtube.com/vi/OV41-JY1zbM/maxresdefault.jpg)](https://youtu.be/OV41-JY1zbM?si=VqPjwtPsPHnL9SAT)
 
 ---
 
