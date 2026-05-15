@@ -160,6 +160,128 @@ export function DownloadSection() {
           ))}
         </div>
 
+        {/* Inline contract demo block */}
+        <div
+          style={{
+            background: '#010a16',
+            border: '1px solid var(--border-strong)',
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+            marginBottom: 40,
+          }}
+        >
+          {/* Header bar */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 18px',
+              borderBottom: '1px solid var(--border)',
+              background: 'rgba(0,212,255,0.04)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {/* Traffic-light dots */}
+              {['#ff5f57','#febc2e','#28c840'].map((c) => (
+                <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />
+              ))}
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  color: 'var(--text-dim)',
+                  marginLeft: 6,
+                }}
+              >
+                DemoVault.sol — inline audit
+              </span>
+            </div>
+            <span
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                color: 'var(--cyan)',
+                background: 'rgba(0,212,255,0.08)',
+                padding: '2px 8px',
+                borderRadius: 4,
+                border: '1px solid rgba(0,212,255,0.2)',
+              }}
+            >
+              ⚠ reentrancy · flash loan · access control
+            </span>
+          </div>
+
+          {/* Command line */}
+          <div
+            style={{
+              padding: '12px 18px',
+              borderBottom: '1px solid rgba(255,255,255,0.04)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12,
+              color: 'var(--cyan)',
+              background: 'rgba(0,212,255,0.03)',
+            }}
+          >
+            <span style={{ color: 'var(--text-dim)', marginRight: 6 }}>$</span>
+            ./dist/raxclaw run <span style={{ color: '#7dd3fc' }}>&quot;&lt;contract code&gt;&quot;</span>
+          </div>
+
+          {/* Contract source */}
+          <div style={{ padding: '18px 22px', overflowX: 'auto' }}>
+            <pre
+              style={{
+                margin: 0,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 12,
+                lineHeight: 1.7,
+                color: '#94a3b8',
+              }}
+            >
+{[
+  { t: 'comment',  v: '// SPDX-License-Identifier: MIT' },
+  { t: 'kw',       v: 'pragma solidity ', s: 'plain', rest: '^0.8.0;' },
+  { t: 'blank' },
+  { t: 'kw',       v: 'contract ', s: 'name', rest: 'DemoVault {' },
+  { t: 'field',    v: '    address public ', rest: 'owner;' },
+  { t: 'field',    v: '    mapping(address => uint256) public ', rest: 'balances;' },
+  { t: 'field',    v: '    uint256 public ', rest: 'totalDeposits;' },
+  { t: 'field',    v: '    uint256 public ', rest: 'flashLoanFee = 10;' },
+  { t: 'blank' },
+  { t: 'fn',       v: '    constructor', rest: '() { owner = msg.sender; }' },
+  { t: 'blank' },
+  { t: 'warn',     v: '    // ⚠ CEI violation — state updated AFTER external call' },
+  { t: 'fn',       v: '    function ', s: 'fn', rest: 'withdraw(uint256 amount) external {' },
+  { t: 'plain',    v: '        require(balances[msg.sender] >= amount, "insufficient balance");' },
+  { t: 'plain',    v: '        (bool ok, ) = msg.sender.call{value: amount}("");' },
+  { t: 'plain',    v: '        require(ok, "transfer failed");' },
+  { t: 'plain',    v: '        balances[msg.sender] -= amount;   ', rest: '// ← runs AFTER call' },
+  { t: 'plain',    v: '    }' },
+  { t: 'blank' },
+  { t: 'warn',     v: '    // ⚠ flash loan — spot balance as oracle reference' },
+  { t: 'fn',       v: '    function ', s: 'fn', rest: 'flashLoan(uint256 amount) external {' },
+  { t: 'plain',    v: '        uint256 balanceBefore = address(this).balance;' },
+  { t: 'plain',    v: '        (bool ok, ) = msg.sender.call{value: amount}(...);' },
+  { t: 'plain',    v: '    }' },
+  { t: 'blank' },
+  { t: 'warn',     v: '    // ⚠ no access control — anyone can call setFee' },
+  { t: 'fn',       v: '    function ', s: 'fn', rest: 'setFee(uint256 newFee) external {' },
+  { t: 'plain',    v: '        flashLoanFee = newFee;' },
+  { t: 'plain',    v: '    }' },
+  { t: 'plain',    v: '}' },
+].map((line, i) => {
+  if (line.t === 'blank') return <span key={i}>{'\n'}</span>;
+  if (line.t === 'comment') return <span key={i} style={{ color: '#4a5568' }}>{line.v}{'\n'}</span>;
+  if (line.t === 'warn')    return <span key={i} style={{ color: '#f59e0b' }}>{line.v}{'\n'}</span>;
+  if (line.t === 'kw')      return <span key={i}><span style={{ color: '#7c3aed' }}>{line.v}</span><span style={{ color: 'var(--cyan)' }}>{line.s === 'name' ? '' : ''}</span>{line.rest}{'\n'}</span>;
+  if (line.t === 'fn')      return <span key={i}><span style={{ color: '#7c3aed' }}>{line.v}</span><span style={{ color: '#38bdf8' }}>{line.rest}</span>{'\n'}</span>;
+  if (line.t === 'field')   return <span key={i}><span style={{ color: '#475569' }}>{line.v}</span><span style={{ color: '#64748b' }}>{line.rest}</span>{'\n'}</span>;
+  return <span key={i} style={{ color: '#64748b' }}>{line.v}{line.rest ?? ''}{'\n'}</span>;
+})}
+            </pre>
+          </div>
+        </div>
+
         {/* CTA buttons */}
         <div
           style={{
