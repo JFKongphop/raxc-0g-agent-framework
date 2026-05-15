@@ -5,6 +5,8 @@
 [![ERC-8183](https://img.shields.io/badge/ERC--8183-Audit%20Task-green)](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c)
 [![ERC-7857](https://img.shields.io/badge/ERC--7857-Agent%20NFT-purple)](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53)
 
+> **RAXCLAW** is an autonomous smart contract security agent powered by 0G Storage, 0G Compute, and on-chain ERC-8183 proof — detecting vulnerabilities using 722 real DeFi exploits.
+
 > *"Don't just ask an AI if your contract is safe — ask an AI that has seen 722 real hacks."*
 
 🌐 **Frontend:** [raxc-0g-agent-framework.vercel.app](https://raxc-0g-agent-framework.vercel.app)  
@@ -351,6 +353,22 @@ pnpm install && pnpm build:all
 ```
 
 > All API keys, contract addresses, and RPC endpoints are baked into `skills/raxc-security/run.sh` for zero-config dev/demo use. To use your own keys, create a `.env` file (see [`.env.local`](.env.local) for the full variable list).
+
+### Notes for Judges / Reviewers
+
+> All credentials below are **testnet-only throwaway keys** included intentionally for zero-friction judge review. Do not use them with real funds.
+
+| Item | Detail |
+|------|--------|
+| Network | 0G Galileo Testnet (Chain ID 16602) |
+| RPC | `https://evmrpc-testnet.0g.ai` |
+| Explorer | [chainscan-galileo.0g.ai](https://chainscan-galileo.0g.ai) |
+| Testnet wallet | Pre-funded, baked into `run.sh` — no faucet needed |
+| ERC-8183 contract | [`0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c`](https://chainscan-galileo.0g.ai/address/0x6FFc92b063Fc470Dd2D4Cbd0f64E75eD96AE7a8c) |
+| ERC-7857 contract | [`0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53`](https://chainscan-galileo.0g.ai/address/0xe3c7863AD3176E88E9C75a580fC15a2976D5fF53) |
+| 0G Storage proof | [`backend/manifest.json`](https://github.com/JFKongphop/raxc-0g-agent-framework/blob/main/backend/manifest.json) — 722 root hashes |
+| Remote storage health | [`/health`](https://raxc-0g-agent-framework-j43hng.fly.dev/health) — live, returns `{"loaded":722}` |
+| Build time | ~2.5 min first run (Rust compile); instant after `pnpm build:rust` |
 
 ---
 
