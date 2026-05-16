@@ -16,7 +16,9 @@
 
 🌐 **Frontend:** [raxclaw.vercel.app](https://raxclaw.vercel.app)  
 🗄️ **Remote Storage:** [raxc-0g-agent-framework-j43hng.fly.dev](https://raxc-0g-agent-framework-j43hng.fly.dev)  
-🎬 **Demo Video:** [youtu.be/OV41-JY1zbM](https://youtu.be/OV41-JY1zbM?si=VqPjwtPsPHnL9SAT)
+🎬 **Demo Video:** [youtu.be/OV41-JY1zbM](https://youtu.be/OV41-JY1zbM?si=VqPjwtPsPHnL9SAT)  
+📄 **ERC-8183:** [`0xa018A255881e0525831Df7bCDf9A03D1B06E1790`](https://chainscan.0g.ai/address/0xa018A255881e0525831Df7bCDf9A03D1B06E1790) (0G Mainnet)  
+📄 **ERC-7857:** [`0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e`](https://chainscan.0g.ai/address/0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e) (0G Mainnet)
 
 ---
 
@@ -98,11 +100,6 @@ The CLI (`raxclaw`) is the primary product. The frontend is a verification and r
 ---
 
 ## On-Chain Contracts (0G Mainnet — Chain ID 16661)
-
-| Contract | Standard | Address |
-|----------|----------|---------|
-| **RaxcAuditTask8183** | ERC-8183 | [`0xa018A255881e0525831Df7bCDf9A03D1B06E1790`](https://chainscan.0g.ai/address/0xa018A255881e0525831Df7bCDf9A03D1B06E1790) |
-| **RaxcAgentNFT** | ERC-7857 | [`0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e`](https://chainscan.0g.ai/address/0xF335a9B58f2AA6A2f884d2dA4E308F7378A4CF7e) |
 
 **ERC-8183** — Audit task lifecycle: `createTask → finalizeTask(verdict, rootHash, replayId)`  
 **ERC-7857** — Intelligent agent NFT: on-chain memory pointer updated after every audit
