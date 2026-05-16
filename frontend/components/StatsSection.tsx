@@ -69,7 +69,7 @@ export function StatsSection() {
             </p>
             {chain && (
               <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: chain.online ? '#00ff88' : 'var(--text-dim)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                ● {chain.online ? '0G Galileo live' : 'chain unreachable'}
+                ● {chain.online ? '0G Aristotle live' : 'chain unreachable'}
               </span>
             )}
           </div>
