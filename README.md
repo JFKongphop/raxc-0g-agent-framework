@@ -1,5 +1,10 @@
 # RAXCLAW — Autonomous Security Cognition on 0G
 
+> [!WARNING]
+> **The testnet wallet previously baked into `skills/raxc-security/run.sh` has been compromised.**
+> The private key was publicly visible in this repo and was used by an attacker to drain 0G tokens on mainnet.
+> **Do not use or fund that address.** To run the agent, set your own `PRIVATE_KEY` in a `.env` file — see [`.env.local`](.env.local) for the full variable list.
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![0G Testnet](https://img.shields.io/badge/0G-Galileo%20Testnet-cyan)](https://evmrpc-testnet.0g.ai)
 [![ERC-8183](https://img.shields.io/badge/ERC--8183-Audit%20Task-green)](https://chainscan.0g.ai/address/0xa018A255881e0525831Df7bCDf9A03D1B06E1790)
